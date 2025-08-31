@@ -149,6 +149,37 @@ function createStartJoinCommand(userId, phoneNumber) {
     fs.writeFileSync(commandFile, 'startjoin');
 }
 
+// Clean up session files and folder
+function cleanupAutoJoinSession(userId, phoneNumber) {
+    const filesToClean = [
+        `autojoin_links_${phoneNumber}_${userId}.json`,
+        `autojoin_command_${phoneNumber}_${userId}.txt`
+    ];
+    
+    // Clean up files
+    filesToClean.forEach(file => {
+        if (fs.existsSync(file)) {
+            try {
+                fs.unlinkSync(file);
+                console.log(`Cleaned up file: ${file}`);
+            } catch (e) {
+                console.error(`Error deleting ${file}:`, e);
+            }
+        }
+    });
+    
+    // Clean up auth directory
+    const authDir = `autojoin_auth_${phoneNumber}`;
+    if (fs.existsSync(authDir)) {
+        try {
+            fs.rmSync(authDir, { recursive: true, force: true });
+            console.log(`Cleaned up auth directory: ${authDir}`);
+        } catch (e) {
+            console.error('Error cleaning auth directory:', e);
+        }
+    }
+}
+
 // Initialize admin file on startup
 initializeAdminFile();
 
@@ -169,7 +200,7 @@ bot.onText(/\/start/, async (msg) => {
     }
     
     const welcomeMessage = `
-🤖 *WhatsApp Group Extractor Bot v2.4.0*
+🤖 *WhatsApp Group Extractor Bot v2.4.1*
 
 Selamat datang! Bot ini dapat membantu Anda mengekstrak dan join grup WhatsApp.
 
@@ -198,10 +229,11 @@ ${isOwner(userInfo.id) ? `
 
 ${roleInfo}
 
-🆕 *Update v2.4.0:*
-• Fitur AutoJoin grup WhatsApp
-• Sistem manajemen link grup
-• Join otomatis dengan delay random
+🆕 *Update v2.4.1:*
+• Perbaikan sistem pelaporan autojoin
+• Pembersihan session yang lebih baik
+• Laporan hasil dalam format TXT
+• Perbaikan bug session tidak tertutup
     `;
     
     await bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
@@ -228,7 +260,7 @@ bot.onText(/\/help/, async (msg) => {
 ` : '';
     
     const helpMessage = `
-📚 *Bantuan Penggunaan Bot v2.4.0*
+📚 *Bantuan Penggunaan Bot v2.4.1*
 
 📸 *Perintah Utama:*
 \`/extract [nomor_wa]\` - Memulai proses ekstraksi grup WhatsApp
@@ -254,7 +286,7 @@ ${ownerCommands}
 • Gunakan nomor WhatsApp Anda sendiri
 • Proses dapat memakan waktu 2-5 menit
 • Pastikan WhatsApp aktif di ponsel saat proses berjalan
-• Hasil akan berupa file JSON/TXT dengan hasil join
+• Hasil akan berupa file TXT dengan link yang berhasil dijoin
     `;
     
     await bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
@@ -307,7 +339,7 @@ Gunakan format: \`/autojoin [nomor_wa]\`
 ⚠️ Anda sudah memiliki session autojoin yang aktif!
 
 📱 Nomor aktif: ${session.phoneNumber}
-🔗 Link tersimpan: ${session.links ? session.links.length : 0}
+📊 Link tersimpan: ${session.links ? session.links.length : 0}
 
 Gunakan \`/addlinks\` untuk menambah link grup atau \`/startjoin\` untuk memulai join.
 Atau gunakan \`/cancel\` untuk membatalkan session ini.
@@ -365,14 +397,14 @@ Tunggu hingga WhatsApp berhasil terhubung, lalu coba lagi.
 📝 *Kirim Link Grup WhatsApp*
 
 📱 Session aktif: ${session.phoneNumber}
-🔗 Link tersimpan: ${session.links ? session.links.length : 0}
+📊 Link tersimpan: ${session.links ? session.links.length : 0}
 
 💡 *Cara mengirim link:*
 • Kirim 1 link per pesan atau beberapa sekaligus
 • Bot akan otomatis mendeteksi dan menyimpan link
 • Anda bisa mengirim link kapan saja selama session aktif
 
-🌐 *Format link yang diterima:*
+🔗 *Format link yang diterima:*
 https://chat.whatsapp.com/GZqg8bpwGla5M9fbJnrm79
 https://chat.whatsapp.com/ABC123xyz?mode=ems_copy_c
 
@@ -416,10 +448,10 @@ Gunakan \`/addlinks\` untuk menambahkan link grup terlebih dahulu.
     
     // Show confirmation
     await bot.sendMessage(chatId, `
-🎯 *Konfirmasi Auto Join*
+🏯 *Konfirmasi Auto Join*
 
 📱 Nomor: ${session.phoneNumber}
-🔗 Total link grup: ${session.links.length}
+📊 Total link grup: ${session.links.length}
 
 📋 *Link yang akan dijoin:*
 ${session.links.slice(0, 10).map((link, i) => `${i + 1}. ${link}`).join('\n')}
@@ -465,7 +497,8 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
         phoneNumber,
         startTime: Date.now(),
         stage: 'initializing',
-        links: []
+        links: [],
+        chatId: chatId // Store chat ID for later use
     };
     
     await bot.sendMessage(chatId, `
@@ -474,7 +507,7 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
 📱 Nomor: ${phoneNumber}
 ⏱️ Estimasi waktu: 2-5 menit
 
-📄 Sedang mempersiapkan WhatsApp Web...
+📞 Sedang mempersiapkan WhatsApp Web...
 
 💡 *Pastikan:*
 • WhatsApp aktif di ponsel dengan nomor ${phoneNumber}
@@ -516,7 +549,7 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
                     await bot.sendMessage(chatId, `
 🔑 *Kode Pairing WhatsApp*
 
-🔐 **${pairingCode}**
+📱 **${pairingCode}**
 
 📱 *Langkah-langkah pairing:*
 1. Buka WhatsApp di ponsel dengan nomor **${phoneNumber}**
@@ -541,7 +574,7 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
 ✅ *WhatsApp Berhasil Terhubung!*
 
 📱 Nomor ${phoneNumber} telah terhubung
-🎯 Session autojoin siap digunakan
+🏯 Session autojoin siap digunakan
 
 📝 *Langkah selanjutnya:*
 • Gunakan \`/addlinks\` untuk menambah link grup
@@ -567,25 +600,27 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
         autoJoinProcess.on('close', async (code) => {
             console.log(`[AUTOJOIN-${userInfo.id}-${phoneNumber}] Process exited with code:`, code);
             
-            // Clean up session
-            autoJoinSessions.delete(userInfo.id);
-            
             if (code === 0) {
-                // Process completed successfully, results should be handled by log monitoring
+                // Process completed successfully, but don't clean up session yet
+                // Wait for results to be processed first
                 await bot.sendMessage(chatId, `
 ✅ *Proses AutoJoin Selesai!*
 
 📱 Nomor: ${phoneNumber}
-🎯 Semua grup telah diproses
+🏯 Semua grup telah diproses
 
-📊 Mengirim laporan hasil...
+📊 Sedang mempersiapkan laporan hasil...
                 `, { parse_mode: 'Markdown' });
             } else {
+                // Process failed, clean up session
+                autoJoinSessions.delete(userInfo.id);
+                cleanupAutoJoinSession(userInfo.id, phoneNumber);
+                
                 await bot.sendMessage(chatId, `
 ❌ *Proses AutoJoin Gagal*
 
 📱 Nomor: ${phoneNumber}
-🔍 Terjadi kesalahan saat proses autojoin.
+💥 Terjadi kesalahan saat proses autojoin.
 
 **Kemungkinan penyebab:**
 • Kode pairing salah atau expired
@@ -608,6 +643,7 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
             console.error(`[AUTOJOIN-${userInfo.id}-${phoneNumber}] Process error:`, error);
             
             autoJoinSessions.delete(userInfo.id);
+            cleanupAutoJoinSession(userInfo.id, phoneNumber);
             
             await bot.sendMessage(chatId, `
 ❌ *Kesalahan Sistem*
@@ -629,6 +665,7 @@ Terjadi kesalahan saat memulai proses autojoin.
                         session.process.kill('SIGTERM');
                     }
                     autoJoinSessions.delete(userInfo.id);
+                    cleanupAutoJoinSession(userInfo.id, phoneNumber);
                     
                     await bot.sendMessage(chatId, `
 ⏰ *Session AutoJoin Timeout*
@@ -676,10 +713,10 @@ async function startJoinProcess(chatId, userInfo, session) {
         autoJoinSessions.set(userInfo.id, session);
         
         await bot.sendMessage(chatId, `
-🎯 *Memulai Proses Join Grup*
+🏯 *Memulai Proses Join Grup*
 
 📱 Nomor: ${session.phoneNumber}
-🔗 Total grup: ${session.links.length}
+📊 Total grup: ${session.links.length}
 ⏱️ Estimasi waktu: ${Math.ceil(session.links.length * 1.5)} detik
 
 🚀 Sedang join grup satu per satu...
@@ -693,9 +730,9 @@ async function startJoinProcess(chatId, userInfo, session) {
         console.error('Error starting join process:', error);
         await bot.sendMessage(chatId, '❌ Gagal memulai proses join. Silakan coba lagi.');
     }
-};
+}
 
-// Monitor autojoin log file for results
+// Monitor autojoin log file for results - UPDATED VERSION
 setInterval(async () => {
     try {
         const logFile = 'autojoin_log.txt';
@@ -709,62 +746,32 @@ setInterval(async () => {
                     
                     // Find the corresponding user session
                     let targetUserId = null;
+                    let targetSession = null;
                     for (const [userId, session] of autoJoinSessions) {
                         if (session.phoneNumber === logEntry.phone && 
                             session.chatId === parseInt(logEntry.chat_id)) {
                             targetUserId = userId;
+                            targetSession = session;
                             break;
                         }
                     }
                     
-                    if (!targetUserId) continue;
+                    if (!targetUserId || !targetSession) continue;
                     
                     const chatId = parseInt(logEntry.chat_id);
                     
-                    if (logEntry.type === 'result') {
-                        // Process completed, send final results
-                        const resultMatch = logEntry.message.match(/Berhasil: (\d+).*Sudah member: (\d+).*Gagal: (\d+).*Total: (\d+)/);
-                        if (resultMatch) {
-                            const [, success, alreadyMember, failed, total] = resultMatch;
-                            
-                            await bot.sendMessage(chatId, `
-🎉 *AutoJoin Selesai!*
-
-📱 **Nomor:** ${logEntry.phone}
-📊 **Hasil Join:**
-
-✅ **Berhasil join:** ${success} grup
-👥 **Sudah member:** ${alreadyMember} grup
-❌ **Gagal join:** ${failed} grup
-📊 **Total diproses:** ${total} grup
-
-⏱️ **Selesai pada:** ${new Date().toLocaleString('id-ID')}
-
-📄 Mengirim file laporan hasil...
-                            `, { parse_mode: 'Markdown' });
-                            
-                            // Send results file
-                            await sendJoinResults(chatId, logEntry.phone, userInfo.id);
-                            
-                            // Cleanup session
-                            autoJoinSessions.delete(targetUserId);
-                        }
-                    } else if (logEntry.type === 'completed') {
-                        // Alternative completion message
-                        await bot.sendMessage(chatId, `
-✅ *AutoJoin Proses Selesai!*
-
-📱 Nomor: ${logEntry.phone}
-📊 Semua grup telah diproses
-
-📄 Laporan hasil akan segera dikirim...
-                        `, { parse_mode: 'Markdown' });
+                    if (logEntry.type === 'result' || logEntry.type === 'completed') {
+                        // Process completed, send final results and THEN cleanup session
+                        console.log(`Processing autojoin results for user ${targetUserId}, phone ${logEntry.phone}`);
                         
-                        // Send results file
-                        await sendJoinResults(chatId, logEntry.phone, targetUserId);
+                        // Send results first before cleaning up session
+                        await sendJoinResults(chatId, logEntry.phone, targetUserId, targetSession);
                         
-                        // Cleanup session
+                        // IMPORTANT: Clean up session AFTER sending results
                         autoJoinSessions.delete(targetUserId);
+                        cleanupAutoJoinSession(targetUserId, logEntry.phone);
+                        
+                        console.log(`Session cleaned up for user ${targetUserId}, phone ${logEntry.phone}`);
                     }
                 } catch (parseError) {
                     console.error('Error parsing log entry:', parseError);
@@ -779,8 +786,10 @@ setInterval(async () => {
     }
 }, 3000); // Check every 3 seconds
 
-async function sendJoinResults(chatId, phoneNumber, userId) {
+async function sendJoinResults(chatId, phoneNumber, userId, session) {
     try {
+        console.log(`Sending join results for phone ${phoneNumber}, user ${userId}`);
+        
         // Look for result files
         const files = fs.readdirSync('.');
         const reportFiles = files.filter(f => f.startsWith(`autojoin_final_report_${phoneNumber}_`)).sort((a, b) => {
@@ -789,88 +798,163 @@ async function sendJoinResults(chatId, phoneNumber, userId) {
             return statsB.mtime - statsA.mtime; // Most recent first
         });
         
+        let successful = [];
+        let alreadyMember = [];
+        let failed = [];
+        let totalProcessed = 0;
+        
         if (reportFiles.length > 0) {
             const latestReportFile = reportFiles[0];
+            console.log(`Found report file: ${latestReportFile}`);
             
-            // Read report data
-            const reportData = JSON.parse(fs.readFileSync(latestReportFile, 'utf8'));
-            const results = reportData.results || [];
-            
-            // Create summary
-            const successful = results.filter(r => r.status === 'success');
-            const alreadyMember = results.filter(r => r.status === 'already_member');
-            const failed = results.filter(r => r.status !== 'success' && r.status !== 'already_member');
-            
-            // Send JSON report file
-            await bot.sendDocument(chatId, latestReportFile, {
-                caption: `📋 **Laporan Lengkap AutoJoin**\n\n📱 Nomor: ${phoneNumber}\n📊 Total diproses: ${results.length}\n⏰ ${new Date().toLocaleString('id-ID')}`
-            });
-            
-            // Create and send TXT file with successful links only
-            if (successful.length > 0) {
-                const successfulLinks = successful.map(r => r.link).join('\n');
-                const txtFileName = `autojoin_success_${phoneNumber}_${Date.now()}.txt`;
-                fs.writeFileSync(txtFileName, successfulLinks);
+            try {
+                // Read report data
+                const reportData = JSON.parse(fs.readFileSync(latestReportFile, 'utf8'));
+                const results = reportData.results || [];
                 
-                await bot.sendDocument(chatId, txtFileName, {
-                    caption: `📄 **Link Grup yang Berhasil Dijoin**\n\n✅ ${successful.length} grup berhasil dijoin`
+                // Categorize results
+                successful = results.filter(r => r.status === 'success');
+                alreadyMember = results.filter(r => r.status === 'already_member');
+                failed = results.filter(r => r.status !== 'success' && r.status !== 'already_member');
+                totalProcessed = results.length;
+                
+                console.log(`Results: Success=${successful.length}, Already=${alreadyMember.length}, Failed=${failed.length}`);
+                
+                // Send summary message first
+                await bot.sendMessage(chatId, `
+🏆 *AutoJoin Selesai!*
+
+📱 **Nomor:** ${phoneNumber}
+📊 **Hasil Join:**
+
+✅ **Berhasil join:** ${successful.length} grup
+👥 **Sudah member:** ${alreadyMember.length} grup
+❌ **Gagal join:** ${failed.length} grup
+📊 **Total diproses:** ${totalProcessed} grup
+
+⏱️ **Selesai pada:** ${new Date().toLocaleString('id-ID')}
+
+📄 Mengirim laporan hasil...
+                `, { parse_mode: 'Markdown' });
+                
+                // Create and send TXT file with successful links only
+                if (successful.length > 0) {
+                    const successfulLinks = successful.map(r => r.link).join('\n');
+                    const txtFileName = `autojoin_success_${phoneNumber}_${userId}_${Date.now()}.txt`;
+                    
+                    fs.writeFileSync(txtFileName, successfulLinks);
+                    console.log(`Created TXT file: ${txtFileName} with ${successful.length} successful links`);
+                    
+                    await bot.sendDocument(chatId, txtFileName, {
+                        caption: `📄 **Link Grup yang Berhasil Dijoin**\n\n✅ ${successful.length} grup berhasil dijoin\n📱 Nomor: ${phoneNumber}`
+                    });
+                    
+                    console.log(`TXT file sent successfully to chat ${chatId}`);
+                    
+                    // Cleanup txt file after sending
+                    setTimeout(() => {
+                        try {
+                            if (fs.existsSync(txtFileName)) {
+                                fs.unlinkSync(txtFileName);
+                                console.log(`Cleaned up TXT file: ${txtFileName}`);
+                            }
+                        } catch (e) {
+                            console.error('Error deleting txt file:', e);
+                        }
+                    }, 10000); // 10 seconds delay
+                } else {
+                    await bot.sendMessage(chatId, `
+📄 **Tidak ada grup yang berhasil dijoin**
+
+❌ Semua ${totalProcessed} grup gagal dijoin atau sudah menjadi member.
+
+**Kemungkinan penyebab:**
+• Link grup sudah expired atau tidak valid
+• Grup sudah private atau tidak menerima member baru
+• Anda sudah menjadi member di semua grup
+• Rate limit dari WhatsApp
+
+💡 Coba gunakan link grup yang lebih baru dan pastikan masih aktif.
+                    `, { parse_mode: 'Markdown' });
+                }
+                
+                // Also send JSON report for detailed info
+                await bot.sendDocument(chatId, latestReportFile, {
+                    caption: `📋 **Laporan Detail AutoJoin**\n\n📱 Nomor: ${phoneNumber}\n📊 Total: ${totalProcessed} grup\n🕐 ${new Date().toLocaleString('id-ID')}`
                 });
                 
-                // Cleanup txt file after sending
+                // Cleanup report file after sending
                 setTimeout(() => {
                     try {
-                        fs.unlinkSync(txtFileName);
+                        if (fs.existsSync(latestReportFile)) {
+                            fs.unlinkSync(latestReportFile);
+                            console.log(`Cleaned up report file: ${latestReportFile}`);
+                        }
                     } catch (e) {
-                        console.error('Error deleting txt file:', e);
+                        console.error('Error deleting report file:', e);
                     }
-                }, 5000);
-            }
-            
-            // Cleanup report file
-            setTimeout(() => {
-                try {
-                    fs.unlinkSync(latestReportFile);
-                } catch (e) {
-                    console.error('Error deleting report file:', e);
-                }
-            }, 10000);
-            
-            // Cleanup auth directory
-            const authDir = `autojoin_auth_${phoneNumber}`;
-            if (fs.existsSync(authDir)) {
-                try {
-                    fs.rmSync(authDir, { recursive: true, force: true });
-                    console.log(`Cleaned up auth directory: ${authDir}`);
-                } catch (e) {
-                    console.error('Error cleaning auth directory:', e);
-                }
-            }
-            
-            // Send final summary message
-            await bot.sendMessage(chatId, `
-🏁 *AutoJoin Selesai*
+                }, 15000); // 15 seconds delay
+                
+            } catch (fileError) {
+                console.error('Error reading report file:', fileError);
+                await bot.sendMessage(chatId, `
+❌ **Error membaca laporan hasil**
 
-📈 **Statistik Final:**
+📱 Nomor: ${phoneNumber}
+💥 Terjadi kesalahan saat membaca file laporan.
+
+Proses mungkin sudah selesai tetapi laporan tidak dapat dibaca.
+                `, { parse_mode: 'Markdown' });
+            }
+        } else {
+            console.log(`No report files found for phone ${phoneNumber}`);
+            await bot.sendMessage(chatId, `
+⚠️ **File laporan tidak ditemukan**
+
+📱 Nomor: ${phoneNumber}
+📊 Proses mungkin belum selesai sepenuhnya atau terjadi kesalahan.
+
+💡 Gunakan \`/status\` untuk cek status atau coba lagi dengan \`/autojoin ${phoneNumber}\`
+            `, { parse_mode: 'Markdown' });
+        }
+        
+        // Send final completion message
+        await bot.sendMessage(chatId, `
+🎯 **AutoJoin Session Ditutup**
+
+📱 **Nomor:** ${phoneNumber}
+📊 **Statistik Final:**
 ✅ Berhasil join: **${successful.length}** grup
 👥 Sudah member: **${alreadyMember.length}** grup  
 ❌ Gagal join: **${failed.length}** grup
 
-📄 **File yang dikirim:**
-• Laporan lengkap (JSON)
-${successful.length > 0 ? '• Daftar link berhasil (TXT)' : ''}
+🗂️ **File yang dikirim:**
+${successful.length > 0 ? '• Daftar link berhasil (TXT)' : '• Tidak ada link berhasil'}
+• Laporan detail (JSON)
 
 🔒 **Keamanan:** Session WhatsApp telah dihapus otomatis.
 
 💡 Gunakan \`/autojoin [nomor]\` untuk session baru.
-            `, { parse_mode: 'Markdown' });
-            
-        } else {
-            await bot.sendMessage(chatId, '⚠️ File laporan tidak ditemukan. Proses mungkin belum selesai sepenuhnya.');
-        }
+        `, { parse_mode: 'Markdown' });
+        
+        await logActivity('AUTOJOIN_RESULTS_SENT', { id: userId }, `Phone: ${phoneNumber}, Success: ${successful.length}, Total: ${totalProcessed}`);
         
     } catch (error) {
         console.error('Error sending join results:', error);
-        await bot.sendMessage(chatId, '❌ Terjadi kesalahan saat mengirim hasil. File mungkin tersimpan di server.');
+        
+        // Still cleanup session even if sending results failed
+        autoJoinSessions.delete(userId);
+        cleanupAutoJoinSession(userId, phoneNumber);
+        
+        await bot.sendMessage(chatId, `
+❌ **Kesalahan mengirim laporan**
+
+📱 Nomor: ${phoneNumber}
+💥 Terjadi kesalahan saat mengirim hasil.
+
+🔒 Session telah ditutup untuk keamanan.
+💡 Silakan coba lagi dengan \`/autojoin ${phoneNumber}\`
+        `, { parse_mode: 'Markdown' });
     }
 }
 
@@ -918,7 +1002,7 @@ bot.on('message', async (msg) => {
                     await bot.sendMessage(chatId, `
 ✅ *Link Grup Berhasil Ditambahkan*
 
-🔗 **Link baru:** ${newLinks.length}
+📊 **Link baru:** ${newLinks.length}
 📊 **Total link:** ${session.links.length}
 📱 **Session:** ${session.phoneNumber}
 
@@ -962,7 +1046,7 @@ bot.onText(/\/addadmin(?:\s+(\d+))?/, async (msg, match) => {
 
 Gunakan format: \`/addadmin [user_id]\`
 
-🔍 *Contoh:*
+🔢 *Contoh:*
 \`/addadmin 123456789\`
 
 💡 *Tips:*
@@ -1008,7 +1092,7 @@ Gunakan \`/showadmin\` untuk melihat semua admin.
         // Try to notify the new admin (optional, might fail if they haven't started the bot)
         try {
             await bot.sendMessage(targetUserId, `
-🎉 *Anda telah ditambahkan sebagai admin!*
+🏆 *Anda telah ditambahkan sebagai admin!*
 
 ✅ Anda sekarang dapat menggunakan fitur ekstraksi grup WhatsApp.
 
@@ -1090,7 +1174,7 @@ bot.onText(/\/removeadmin(?:\s+(\d+))?/, async (msg, match) => {
 
 Gunakan format: \`/removeadmin [user_id]\`
 
-🔍 *Contoh:*
+🔢 *Contoh:*
 \`/removeadmin 123456789\`
 
 💡 *Tips:*
@@ -1140,7 +1224,7 @@ Gunakan \`/showadmin\` untuk melihat admin yang tersisa.
 
 ❌ Anda telah dihapus dari daftar admin bot.
 
-🔍 Anda tidak dapat lagi menggunakan fitur ekstraksi grup WhatsApp.
+🔒 Anda tidak dapat lagi menggunakan fitur ekstraksi grup WhatsApp.
 
 💡 Hubungi owner jika ada kesalahan atau untuk mendapatkan akses kembali.
             `, { parse_mode: 'Markdown' });
@@ -1235,10 +1319,10 @@ bot.onText(/\/status/, async (msg) => {
         statusMessage += `
 📊 *Status Ekstraksi*
 
-📄 Status: Sedang berjalan
+📞 Status: Sedang berjalan
 📱 Nomor: ${processInfo.phoneNumber}
 ⏱️ Durasi: ${duration} detik
-🎯 Tahap: ${processInfo.stage || 'Inisialisasi'}
+🏯 Tahap: ${processInfo.stage || 'Inisialisasi'}
 
 ⏳ Silakan tunggu proses selesai...
         `;
@@ -1252,10 +1336,10 @@ bot.onText(/\/status/, async (msg) => {
         statusMessage += `
 🤖 *Status AutoJoin*
 
-📄 Status: ${session.stage}
+📞 Status: ${session.stage}
 📱 Nomor: ${session.phoneNumber}
 ⏱️ Durasi: ${duration} detik
-🔗 Link tersimpan: ${session.links ? session.links.length : 0}
+📊 Link tersimpan: ${session.links ? session.links.length : 0}
 
 ${session.stage === 'connected' || session.stage === 'waiting_links' ? 
   '💡 Gunakan `/addlinks` untuk menambah link atau langsung kirim link grup.' : 
@@ -1315,36 +1399,14 @@ bot.onText(/\/cancel/, async (msg) => {
                 session.process.kill('SIGTERM');
             }
             autoJoinSessions.delete(userInfo.id);
+            cleanupAutoJoinSession(userInfo.id, session.phoneNumber);
             cancelled = true;
-            
-            // Cleanup files
-            const linkFile = `autojoin_links_${session.phoneNumber}_${userInfo.id}.json`;
-            const commandFile = `autojoin_command_${session.phoneNumber}_${userInfo.id}.txt`;
-            const authDir = `autojoin_auth_${session.phoneNumber}`;
-            
-            [linkFile, commandFile].forEach(file => {
-                if (fs.existsSync(file)) {
-                    try {
-                        fs.unlinkSync(file);
-                    } catch (e) {
-                        console.error(`Error deleting ${file}:`, e);
-                    }
-                }
-            });
-            
-            if (fs.existsSync(authDir)) {
-                try {
-                    fs.rmSync(authDir, { recursive: true, force: true });
-                } catch (e) {
-                    console.error('Error cleaning auth directory:', e);
-                }
-            }
             
             await bot.sendMessage(chatId, `
 ✅ *Session AutoJoin Dibatalkan*
 
 📱 Nomor: ${session.phoneNumber}
-🔗 Link tersimpan: ${session.links ? session.links.length : 0}
+📊 Link tersimpan: ${session.links ? session.links.length : 0}
 ⏱️ Durasi: ${Math.floor((Date.now() - session.startTime) / 1000)} detik
 
 🗑️ File session telah dibersihkan.
@@ -1404,7 +1466,7 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
 📱 Nomor: ${phoneNumber}
 ⏱️ Estimasi waktu: 2-5 menit
 
-📄 Sedang mempersiapkan WhatsApp Web...
+📞 Sedang mempersiapkan WhatsApp Web...
 
 💡 *Pastikan:*
 • WhatsApp aktif di ponsel dengan nomor ${phoneNumber}
@@ -1446,7 +1508,7 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
                     await bot.sendMessage(chatId, `
 🔑 *Kode Pairing WhatsApp*
 
-🔐 **${pairingCode}**
+📱 **${pairingCode}**
 
 📱 *Langkah-langkah pairing:*
 1. Buka WhatsApp di ponsel dengan nomor **${phoneNumber}**
@@ -1469,7 +1531,7 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
 ✅ *WhatsApp Berhasil Terhubung!*
 
 📱 Nomor ${phoneNumber} telah terhubung
-📄 Sedang mengekstrak semua grup WhatsApp...
+📞 Sedang mengekstrak semua grup WhatsApp...
 
 ⏳ Proses ini dapat memakan waktu beberapa menit tergantung jumlah grup.
                 `, { parse_mode: 'Markdown' });
@@ -1478,7 +1540,7 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
             // Check for completion
             if (output.includes('Ekstraksi selesai')) {
                 processInfo.stage = 'Menyelesaikan...';
-                await bot.sendMessage(chatId, '🎯 Ekstraksi selesai! Sedang mempersiapkan hasil...');
+                await bot.sendMessage(chatId, '🏯 Ekstraksi selesai! Sedang mempersiapkan hasil...');
             }
         });
         
@@ -1505,7 +1567,7 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
 ❌ *Proses Gagal*
 
 📱 Nomor: ${phoneNumber}
-🔍 Terjadi kesalahan saat mengekstrak grup WhatsApp.
+💥 Terjadi kesalahan saat mengekstrak grup WhatsApp.
 
 **Kemungkinan penyebab:**
 • Kode pairing salah atau expired
@@ -1626,17 +1688,17 @@ async function handleSuccessfulExtraction(chatId, userInfo, phoneNumber) {
 
 📊 **Ringkasan Hasil:**
 👥 Total grup: **${totalGroups}**
-🔗 Link berhasil: **${successfulLinks}**
+📊 Link berhasil: **${successfulLinks}**
 ❌ Link gagal: **${failedLinks}**
 
-🔍 Mengirim file hasil ekstraksi...
+💾 Mengirim file hasil ekstraksi...
 
 ⏱️ **Waktu ekstraksi:** ${new Date().toLocaleString('id-ID')}
         `, { parse_mode: 'Markdown' });
         
         // Send the result file
         await bot.sendDocument(chatId, filePath, {
-            caption: `📋 **Hasil Ekstraksi Grup WhatsApp**\n\n📱 Nomor: ${phoneNumber}\n👥 Total grup: ${totalGroups}\n🔗 Link berhasil: ${successfulLinks}\n🕐 ${new Date().toLocaleString('id-ID')}`
+            caption: `📋 **Hasil Ekstraksi Grup WhatsApp**\n\n📱 Nomor: ${phoneNumber}\n👥 Total grup: ${totalGroups}\n📊 Link berhasil: ${successfulLinks}\n🕐 ${new Date().toLocaleString('id-ID')}`
         });
         
         // Send detailed info if there are failed links
@@ -1699,13 +1761,14 @@ process.on('SIGINT', () => {
         }
     }
     
-    // Kill all autojoin sessions
+    // Kill all autojoin sessions and cleanup
     for (const [userId, sessionInfo] of autoJoinSessions) {
         try {
             if (sessionInfo.process) {
                 sessionInfo.process.kill('SIGTERM');
                 console.log(`Killed autojoin session for user ${userId} (phone: ${sessionInfo.phoneNumber})`);
             }
+            cleanupAutoJoinSession(userId, sessionInfo.phoneNumber);
         } catch (error) {
             console.error(`Error killing autojoin session for user ${userId}:`, error);
         }
@@ -1715,7 +1778,7 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
-console.log('🤖 Telegram Bot v2.4.0 started successfully!');
+console.log('🤖 Telegram Bot v2.4.1 started successfully!');
 console.log('👑 Owner ID:', OWNER_ID);
 
 // Load and display current admins
@@ -1726,9 +1789,9 @@ console.log(`📊 Total authorized users: ${currentAdmins.length} (including own
 
 console.log('📱 Bot is ready to receive commands...');
 console.log('');
-console.log('🆕 New in v2.4.0:');
-console.log('   • AutoJoin feature for joining WhatsApp groups');
-console.log('   • Dynamic link management with /addlinks command');
-console.log('   • Auto group joining with random delays');
-console.log('   • Comprehensive join reports and cleanup');
-console.log('   • Session-based autojoin workflow');
+console.log('🆕 New in v2.4.1:');
+console.log('   • Fixed autojoin report generation and session cleanup');
+console.log('   • Improved TXT file delivery for successful join results');
+console.log('   • Better session management and file cleanup');
+console.log('   • Fixed bug where session closed before sending reports');
+console.log('   • Enhanced error handling and user feedback');
