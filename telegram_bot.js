@@ -70,7 +70,7 @@ function isOwner(userId) {
 
 function isAdmin(userId) {
     const admins = loadAdmins();
-    return admins.includes(userId) || isOwner(userId);
+    return admins.includes(userId);
 }
 
 function validatePhoneNumber(phoneNumber) {
@@ -200,9 +200,9 @@ bot.onText(/\/start/, async (msg) => {
     }
     
     const welcomeMessage = `
-🤖 *WhatsApp Group Extractor Bot v2.4.1*
+🤖 *IGIMONSAN BOT*
 
-Selamat datang! Bot ini dapat membantu Anda mengekstrak dan join grup WhatsApp.
+Selamat datang! Bot ini dapat membantu Anda mengekstrak dan join grup WhatsApp secara otomatis.
 
 📋 *Perintah yang tersedia:*
 • \`/extract [nomor_wa]\` - Ekstrak grup WhatsApp
@@ -268,7 +268,7 @@ bot.onText(/\/help/, async (msg) => {
 
 📸 *AutoJoin Commands:*
 \`/addlinks\` - Tambah link grup untuk autojoin (saat session aktif)
-\`/startjoin\` - Mulai proses join ke semua grup (saat session aktif)
+\`/join\` - Mulai proses join ke semua grup (saat session aktif)
 
 📸 *Perintah Lain:*
 • \`/status\` - Cek apakah ada proses yang berjalan
@@ -280,7 +280,7 @@ ${ownerCommands}
 1. \`/autojoin [nomor_wa]\` - Mulai session
 2. Masukkan pairing code di WhatsApp
 3. \`/addlinks\` - Kirim link grup yang ingin dijoin
-4. \`/startjoin\` - Konfirmasi dan mulai join semua grup
+4. \`/join\` - Konfirmasi dan mulai join semua grup
 
 ⚠️ *Catatan Penting:*
 • Gunakan nomor WhatsApp Anda sendiri
@@ -341,7 +341,7 @@ Gunakan format: \`/autojoin [nomor_wa]\`
 📱 Nomor aktif: ${session.phoneNumber}
 📊 Link tersimpan: ${session.links ? session.links.length : 0}
 
-Gunakan \`/addlinks\` untuk menambah link grup atau \`/startjoin\` untuk memulai join.
+Gunakan \`/addlinks\` untuk menambah link grup atau \`/join\` untuk memulai join.
 Atau gunakan \`/cancel\` untuk membatalkan session ini.
         `, { parse_mode: 'Markdown' });
         return;
@@ -408,7 +408,7 @@ Tunggu hingga WhatsApp berhasil terhubung, lalu coba lagi.
 https://chat.whatsapp.com/GZqg8bpwGla5M9fbJnrm79
 https://chat.whatsapp.com/ABC123xyz?mode=ems_copy_c
 
-Setelah selesai mengirim semua link, gunakan \`/startjoin\` untuk memulai proses join.
+Setelah selesai mengirim semua link, gunakan \`/join\` untuk memulai proses join.
     `, { parse_mode: 'Markdown' });
     
     // Update session stage to waiting for links
@@ -416,7 +416,7 @@ Setelah selesai mengirim semua link, gunakan \`/startjoin\` untuk memulai proses
     autoJoinSessions.set(userInfo.id, session);
 });
 
-bot.onText(/\/startjoin/, async (msg) => {
+bot.onText(/\/join/, async (msg) => {
     const chatId = msg.chat.id;
     const userInfo = getUserInfo(msg);
     
@@ -579,7 +579,7 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
 📝 *Langkah selanjutnya:*
 • Gunakan \`/addlinks\` untuk menambah link grup
 • Atau langsung kirim link grup WhatsApp ke chat ini
-• Setelah selesai, gunakan \`/startjoin\` untuk memulai join
+• Setelah selesai, gunakan \`/join\` untuk memulai join
 
 💡 *Tips:*
 • Anda bisa mengirim banyak link sekaligus
@@ -1012,7 +1012,7 @@ ${newLinks.length > 5 ? `\n... dan ${newLinks.length - 5} link lainnya` : ''}
 
 📝 **Lanjutkan:**
 • Kirim lebih banyak link grup, atau
-• Gunakan \`/startjoin\` untuk mulai join semua grup
+• Gunakan \`/join\` untuk mulai join semua grup
 
 ⏳ Session aktif hingga ${new Date(session.startTime + 30 * 60 * 1000).toLocaleString('id-ID')}
                     `, { parse_mode: 'Markdown' });
