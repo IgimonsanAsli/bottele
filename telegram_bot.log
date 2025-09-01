@@ -280,3 +280,71 @@
 [2025-08-31T05:34:37.635Z] AUTOJOIN_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542
 [2025-08-31T05:34:38.424Z] AUTOJOIN_START_ERROR - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542, Error: extractorProcess is not defined
 [2025-08-31T05:34:46.143Z] CANCEL_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:23:08.830Z] AUTOJOIN_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542
+[2025-09-01T13:23:21.996Z] CANCEL_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:23:22.513Z] AUTOJOIN_CANCELLED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542
+[2025-09-01T13:23:22.514Z] AUTOJOIN_COMPLETED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542, Code: null
+[2025-09-01T13:23:39.212Z] AUTOJOIN_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542
+[2025-09-01T13:24:31.631Z] ADDLINKS_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:24:35.745Z] LINKS_ADDED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542, New: 6, Total: 6
+[2025-09-01T13:24:39.116Z] START_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:24:39.117Z] STARTJOIN_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:24:43.328Z] CONFIRM_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:24:43.746Z] JOIN_PROCESS_STARTED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542, Links: 6
+[2025-09-01T13:24:56.953Z] AUTOJOIN_COMPLETED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6289519705542, Code: 0
+[2025-09-01T13:24:58.995Z] AUTOJOIN_RESULTS_SENT - User: undefined (@undefined, ID: 6672706849) Phone: 6289519705542, Success: 6, Total: 6
+[2025-09-01T13:28:58.108Z] START_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:29:15.629Z] ADDADMIN_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Target: 6660503729
+[2025-09-01T13:29:16.007Z] ADMIN_ADDED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) New admin: 6660503729
+[2025-09-01T13:29:34.839Z] START_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:32:27.879Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:34:45.221Z] ADDLINKS_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:35:53.065Z] LINKS_ADDED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, New: 5, Total: 5
+[2025-09-01T13:36:20.683Z] START_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:36:20.684Z] STARTJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:36:55.453Z] CONFIRM_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:36:55.829Z] JOIN_PROCESS_STARTED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Links: 5
+[2025-09-01T13:37:01.948Z] AUTOJOIN_COMPLETED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Code: 0
+[2025-09-01T13:37:03.209Z] AUTOJOIN_RESULTS_SENT - User: undefined (@undefined, ID: 6660503729) Phone: 6283117583348, Success: 0, Total: 5
+[2025-09-01T13:38:58.939Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:40:46.218Z] ADDLINKS_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:40:59.577Z] LINKS_ADDED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, New: 5, Total: 5
+[2025-09-01T13:41:18.532Z] START_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:41:18.532Z] STARTJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:41:27.799Z] CONFIRM_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:41:28.207Z] JOIN_PROCESS_STARTED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Links: 5
+[2025-09-01T13:41:34.323Z] AUTOJOIN_RESULTS_SENT - User: undefined (@undefined, ID: 6660503729) Phone: 6283117583348, Success: 0, Total: 5
+[2025-09-01T13:41:35.007Z] AUTOJOIN_COMPLETED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Code: 0
+[2025-09-01T13:42:58.208Z] AUTOJOIN_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6283117583348
+[2025-09-01T13:44:03.965Z] LINKS_ADDED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6283117583348, New: 5, Total: 5
+[2025-09-01T13:44:07.087Z] START_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:44:07.087Z] STARTJOIN_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:44:09.547Z] CONFIRM_COMMAND - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) 
+[2025-09-01T13:44:09.953Z] JOIN_PROCESS_STARTED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6283117583348, Links: 5
+[2025-09-01T13:44:22.108Z] AUTOJOIN_COMPLETED - User: Igi || READY UNBAN 2023 HARIAN (@Igimonsan, ID: 6672706849) Phone: 6283117583348, Code: 0
+[2025-09-01T13:44:24.273Z] AUTOJOIN_RESULTS_SENT - User: undefined (@undefined, ID: 6672706849) Phone: 6283117583348, Success: 5, Total: 5
+[2025-09-01T13:44:25.970Z] AUTOJOIN_RESULTS_SENT - User: undefined (@undefined, ID: 6672706849) Phone: 6283117583348, Success: 5, Total: 5
+[2025-09-01T13:46:46.580Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:47:57.106Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:48:19.417Z] ADDLINKS_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:48:43.048Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:49:10.087Z] START_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:49:10.088Z] STARTJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:49:23.068Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:49:37.043Z] AUTOJOIN_COMPLETED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Code: 1
+[2025-09-01T13:52:59.501Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:54:29.323Z] LINKS_ADDED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, New: 2, Total: 2
+[2025-09-01T13:54:38.770Z] START_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:54:38.770Z] STARTJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:54:52.227Z] CONFIRM_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:54:53.125Z] JOIN_PROCESS_STARTED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Links: 2
+[2025-09-01T13:54:56.504Z] AUTOJOIN_RESULTS_SENT - User: undefined (@undefined, ID: 6660503729) Phone: 6283117583348, Success: 0, Total: 2
+[2025-09-01T13:54:57.889Z] AUTOJOIN_COMPLETED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Code: 0
+[2025-09-01T13:57:53.073Z] AUTOJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348
+[2025-09-01T13:59:11.442Z] LINKS_ADDED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, New: 2, Total: 2
+[2025-09-01T13:59:22.029Z] START_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:59:22.030Z] STARTJOIN_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:59:31.873Z] CONFIRM_COMMAND - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) 
+[2025-09-01T13:59:32.254Z] JOIN_PROCESS_STARTED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Links: 2
+[2025-09-01T13:59:38.141Z] AUTOJOIN_COMPLETED - User: 𝓈𝒽𝑒'𝓈 𝓇𝑒𝓈𝓉𝒽𝒶 (@abcdefgasdfhh, ID: 6660503729) Phone: 6283117583348, Code: 0
+[2025-09-01T13:59:38.801Z] AUTOJOIN_RESULTS_SENT - User: undefined (@undefined, ID: 6660503729) Phone: 6283117583348, Success: 0, Total: 2
