@@ -10,12 +10,12 @@ const OWNER_ID = process.env.OWNER_ID ? parseInt(process.env.OWNER_ID) : null;
 
 // Validasi konfigurasi
 if (!TELEGRAM_BOT_TOKEN) {
-    console.error('❌ TELEGRAM_BOT_TOKEN tidak ditemukan di file .env');
+    console.error('âŒ TELEGRAM_BOT_TOKEN tidak ditemukan di file .env');
     process.exit(1);
 }
 
 if (!OWNER_ID) {
-    console.error('❌ OWNER_ID tidak ditemukan di file .env');
+    console.error('âŒ OWNER_ID tidak ditemukan di file .env');
     process.exit(1);
 }
 
@@ -59,7 +59,7 @@ function initializeAdminFile() {
     if (!fs.existsSync('admin.json')) {
         const initialAdmins = [OWNER_ID]; // Owner is always an admin
         saveAdmins(initialAdmins);
-        console.log('✅ admin.json created with owner as initial admin');
+        console.log('âœ… admin.json created with owner as initial admin');
     }
 }
 
@@ -180,55 +180,70 @@ function cleanupAutoJoinSession(userId, phoneNumber) {
     }
 }
 
-// Clean up extraction session files and auth directory
-function cleanupExtractionSession(userId, phoneNumber) {
-    const filesToClean = [
-        // Add any specific extraction files that need cleanup
+function cleanupExtractionSession(phoneNumber) {
+    const authDir = `auth_${phoneNumber}`;
+    const sessionFiles = [
+        '.wwebjs_auth',
+        '.wwebjs_cache'
     ];
     
-    // Clean up files if any
-    filesToClean.forEach(file => {
+    // Clean up auth directory khusus untuk phone number
+    if (fs.existsSync(authDir)) {
+        try {
+            fs.rmSync(authDir, { recursive: true, force: true });
+            console.log(`Cleaned up extraction auth directory: ${authDir}`);
+        } catch (e) {
+            console.error(`Error cleaning auth directory ${authDir}:`, e);
+        }
+    }
+    
+    // Clean up session files yang mungkin dibuat oleh whatsapp_extractor.js
+    sessionFiles.forEach(file => {
         if (fs.existsSync(file)) {
             try {
-                fs.unlinkSync(file);
-                console.log(`Cleaned up extraction file: ${file}`);
+                if (fs.statSync(file).isDirectory()) {
+                    fs.rmSync(file, { recursive: true, force: true });
+                } else {
+                    fs.unlinkSync(file);
+                }
+                console.log(`Cleaned up session file/folder: ${file}`);
             } catch (e) {
                 console.error(`Error deleting ${file}:`, e);
             }
         }
     });
     
-    // Clean up auth directory for extraction
-    const authDir = `extraction_auth_${phoneNumber}`;
-    if (fs.existsSync(authDir)) {
-        try {
-            fs.rmSync(authDir, { recursive: true, force: true });
-            console.log(`Cleaned up extraction auth directory: ${authDir}`);
-        } catch (e) {
-            console.error('Error cleaning extraction auth directory:', e);
-        }
-    }
-    
-    // Also clean up any WhatsApp Web auth folders that might be created
-    const possibleAuthDirs = [
-        '.wwebjs_auth',
-        `auth_${phoneNumber}`,
-        `session_${phoneNumber}`,
-        `whatsapp_session_${phoneNumber}`
-    ];
-    
-    possibleAuthDirs.forEach(dir => {
-        if (fs.existsSync(dir)) {
+    // Clean up any session files with phone number suffix
+    try {
+        const files = fs.readdirSync('.');
+        const sessionFilesToDelete = files.filter(file => 
+            file.includes(phoneNumber) && (
+                file.includes('session') || 
+                file.includes('auth') || 
+                file.includes('wwebjs') ||
+                file.startsWith('session_') ||
+                file.endsWith('.session')
+            )
+        );
+        
+        sessionFilesToDelete.forEach(file => {
             try {
-                fs.rmSync(dir, { recursive: true, force: true });
-                console.log(`Cleaned up auth directory: ${dir}`);
+                if (fs.existsSync(file)) {
+                    if (fs.statSync(file).isDirectory()) {
+                        fs.rmSync(file, { recursive: true, force: true });
+                    } else {
+                        fs.unlinkSync(file);
+                    }
+                    console.log(`Cleaned up phone-specific session: ${file}`);
+                }
             } catch (e) {
-                console.error(`Error cleaning auth directory ${dir}:`, e);
+                console.error(`Error deleting ${file}:`, e);
             }
-        }
-    });
+        });
+    } catch (e) {
+        console.error('Error scanning for session files:', e);
+    }
 }
-
 // Initialize admin file on startup
 initializeAdminFile();
 
@@ -241,48 +256,48 @@ bot.onText(/\/start/, async (msg) => {
     
     let roleInfo = '';
     if (isOwner(userInfo.id)) {
-        roleInfo = '👑 Anda adalah owner dan dapat menggunakan semua fitur.';
+        roleInfo = 'ðŸ‘‘ Anda adalah owner dan dapat menggunakan semua fitur.';
     } else if (isAdmin(userInfo.id)) {
-        roleInfo = '✅ Anda adalah admin dan dapat menggunakan fitur ekstraksi.';
+        roleInfo = 'âœ… Anda adalah admin dan dapat menggunakan fitur ekstraksi.';
     } else {
-        roleInfo = '❌ Anda bukan admin. Akses terbatas.';
+        roleInfo = 'âŒ Anda bukan admin. Akses terbatas.';
     }
     
     const welcomeMessage = `
-🤖 *IGIMONSAN BOT*
+ðŸ¤– *IGIMONSAN BOT*
 
 Selamat datang! Bot ini dapat membantu Anda mengekstrak dan join grup WhatsApp secara otomatis.
 
-📋 *Perintah yang tersedia:*
-• \`/extract [nomor_wa]\` - Ekstrak grup WhatsApp
-• \`/autojoin [nomor_wa]\` - Auto join grup WhatsApp
-• \`/status\` - Cek status proses
-• \`/cancel\` - Batalkan proses aktif
-• \`/help\` - Bantuan penggunaan
+ðŸ“‹ *Perintah yang tersedia:*
+â€¢ \`/extract [nomor_wa]\` - Ekstrak grup WhatsApp
+â€¢ \`/autojoin [nomor_wa]\` - Auto join grup WhatsApp
+â€¢ \`/status\` - Cek status proses
+â€¢ \`/cancel\` - Batalkan proses aktif
+â€¢ \`/help\` - Bantuan penggunaan
 
 ${isOwner(userInfo.id) ? `
-👑 *Perintah Owner:*
-• \`/addadmin [user_id]\` - Tambah admin baru
-• \`/removeadmin [user_id]\` - Hapus admin
-• \`/showadmin\` - Lihat semua admin
+ðŸ‘‘ *Perintah Owner:*
+â€¢ \`/addadmin [user_id]\` - Tambah admin baru
+â€¢ \`/removeadmin [user_id]\` - Hapus admin
+â€¢ \`/showadmin\` - Lihat semua admin
 ` : ''}
 
-📱 *Format nomor WhatsApp:*
-• Indonesia: 628123456789
-• Malaysia: 60123456789
-• Singapura: 6512345678
+ðŸ“± *Format nomor WhatsApp:*
+â€¢ Indonesia: 628123456789
+â€¢ Malaysia: 60123456789
+â€¢ Singapura: 6512345678
 
-⚡ *Contoh penggunaan:*
+âš¡ *Contoh penggunaan:*
 \`/extract 628123456789\`
 \`/autojoin 628123456789\`
 
 ${roleInfo}
 
-🆕 *Update v2.4.1:*
-• Perbaikan sistem pelaporan autojoin
-• Pembersihan session yang lebih baik
-• Laporan hasil dalam format TXT
-• Perbaikan bug session tidak tertutup
+ðŸ†• *Update v2.4.1:*
+â€¢ Perbaikan sistem pelaporan autojoin
+â€¢ Pembersihan session yang lebih baik
+â€¢ Laporan hasil dalam format TXT
+â€¢ Perbaikan bug session tidak tertutup
     `;
     
     await bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
@@ -296,46 +311,46 @@ bot.onText(/\/help/, async (msg) => {
     
     const ownerCommands = isOwner(userInfo.id) ? `
 
-👑 *Perintah Owner:*
+ðŸ‘‘ *Perintah Owner:*
 \`/addadmin [user_id]\` - Menambahkan admin baru ke sistem
 \`/removeadmin [user_id]\` - Menghapus admin dari sistem
 \`/showadmin\` - Melihat daftar semua admin yang aktif
 
-📸 *Manajemen Admin:*
-• Hanya owner yang dapat mengelola admin
-• Admin disimpan di file admin.json
-• Owner selalu menjadi admin otomatis
-• Owner tidak dapat dihapus dari sistem
+ðŸ“¸ *Manajemen Admin:*
+â€¢ Hanya owner yang dapat mengelola admin
+â€¢ Admin disimpan di file admin.json
+â€¢ Owner selalu menjadi admin otomatis
+â€¢ Owner tidak dapat dihapus dari sistem
 ` : '';
     
     const helpMessage = `
-📚 *Bantuan Penggunaan Bot v2.4.1*
+ðŸ“š *Bantuan Penggunaan Bot v2.4.1*
 
-📸 *Perintah Utama:*
+ðŸ“¸ *Perintah Utama:*
 \`/extract [nomor_wa]\` - Memulai proses ekstraksi grup WhatsApp
 \`/autojoin [nomor_wa]\` - Memulai proses auto join grup WhatsApp
 
-📸 *AutoJoin Commands:*
+ðŸ“¸ *AutoJoin Commands:*
 \`/addlinks\` - Tambah link grup untuk autojoin (saat session aktif)
 \`/join\` - Mulai proses join ke semua grup (saat session aktif)
 
-📸 *Perintah Lain:*
-• \`/status\` - Cek apakah ada proses yang berjalan
-• \`/cancel\` - Batalkan proses yang sedang berjalan
-• \`/logs\` - Lihat log aktivitas (admin only)
+ðŸ“¸ *Perintah Lain:*
+â€¢ \`/status\` - Cek apakah ada proses yang berjalan
+â€¢ \`/cancel\` - Batalkan proses yang sedang berjalan
+â€¢ \`/logs\` - Lihat log aktivitas (admin only)
 ${ownerCommands}
 
-🔄 *Alur AutoJoin:*
+ðŸ”„ *Alur AutoJoin:*
 1. \`/autojoin [nomor_wa]\` - Mulai session
 2. Masukkan pairing code di WhatsApp
 3. \`/addlinks\` - Kirim link grup yang ingin dijoin
 4. \`/join\` - Konfirmasi dan mulai join semua grup
 
-⚠️ *Catatan Penting:*
-• Gunakan nomor WhatsApp Anda sendiri
-• Proses dapat memakan waktu 2-5 menit
-• Pastikan WhatsApp aktif di ponsel saat proses berjalan
-• Hasil akan berupa file TXT dengan link yang berhasil dijoin
+âš ï¸ *Catatan Penting:*
+â€¢ Gunakan nomor WhatsApp Anda sendiri
+â€¢ Proses dapat memakan waktu 2-5 menit
+â€¢ Pastikan WhatsApp aktif di ponsel saat proses berjalan
+â€¢ Hasil akan berupa file TXT dengan link yang berhasil dijoin
     `;
     
     await bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
@@ -350,26 +365,26 @@ bot.onText(/\/autojoin(?:\s+(\S+))?/, async (msg, match) => {
     
     // Check if user is admin
     if (!isAdmin(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Maaf, hanya admin yang dapat menggunakan fitur ini.');
+        await bot.sendMessage(chatId, 'âŒ Maaf, hanya admin yang dapat menggunakan fitur ini.');
         return;
     }
     
     // Check if phone number is provided
     if (!phoneNumber) {
         await bot.sendMessage(chatId, `
-❌ *Format perintah salah!*
+âŒ *Format perintah salah!*
 
 Gunakan format: \`/autojoin [nomor_wa]\`
 
-📱 *Contoh:*
+ðŸ“± *Contoh:*
 \`/autojoin 628123456789\` (Indonesia)
 \`/autojoin 60123456789\` (Malaysia)
 \`/autojoin 6512345678\` (Singapura)
 
-💡 *Tips:*
-• Gunakan nomor WhatsApp Anda sendiri
-• Format internasional tanpa tanda + atau spasi
-• Pastikan nomor aktif dan terhubung dengan WhatsApp
+ðŸ’¡ *Tips:*
+â€¢ Gunakan nomor WhatsApp Anda sendiri
+â€¢ Format internasional tanpa tanda + atau spasi
+â€¢ Pastikan nomor aktif dan terhubung dengan WhatsApp
         `, { parse_mode: 'Markdown' });
         return;
     }
@@ -377,7 +392,7 @@ Gunakan format: \`/autojoin [nomor_wa]\`
     // Validate phone number
     const phoneValidation = validatePhoneNumber(phoneNumber);
     if (!phoneValidation.valid) {
-        await bot.sendMessage(chatId, `❌ ${phoneValidation.error}`);
+        await bot.sendMessage(chatId, `âŒ ${phoneValidation.error}`);
         return;
     }
     
@@ -385,10 +400,10 @@ Gunakan format: \`/autojoin [nomor_wa]\`
     if (autoJoinSessions.has(userInfo.id)) {
         const session = autoJoinSessions.get(userInfo.id);
         await bot.sendMessage(chatId, `
-⚠️ Anda sudah memiliki session autojoin yang aktif!
+âš ï¸ Anda sudah memiliki session autojoin yang aktif!
 
-📱 Nomor aktif: ${session.phoneNumber}
-📊 Link tersimpan: ${session.links ? session.links.length : 0}
+ðŸ“± Nomor aktif: ${session.phoneNumber}
+ðŸ“Š Link tersimpan: ${session.links ? session.links.length : 0}
 
 Gunakan \`/addlinks\` untuk menambah link grup atau \`/join\` untuk memulai join.
 Atau gunakan \`/cancel\` untuk membatalkan session ini.
@@ -399,7 +414,7 @@ Atau gunakan \`/cancel\` untuk membatalkan session ini.
     // Check if user has active extraction process
     if (activeProcesses.has(userInfo.id)) {
         await bot.sendMessage(chatId, `
-⚠️ Anda sudah memiliki proses ekstraksi yang sedang berjalan!
+âš ï¸ Anda sudah memiliki proses ekstraksi yang sedang berjalan!
 
 Gunakan \`/cancel\` untuk membatalkan proses ekstraksi terlebih dahulu.
         `);
@@ -419,7 +434,7 @@ bot.onText(/\/addlinks/, async (msg) => {
     // Check if user has active autojoin session
     if (!autoJoinSessions.has(userInfo.id)) {
         await bot.sendMessage(chatId, `
-❌ *Tidak ada session autojoin yang aktif!*
+âŒ *Tidak ada session autojoin yang aktif!*
 
 Mulai session autojoin terlebih dahulu dengan:
 \`/autojoin [nomor_wa]\`
@@ -433,9 +448,9 @@ Contoh: \`/autojoin 628123456789\`
     
     if (session.stage !== 'connected') {
         await bot.sendMessage(chatId, `
-⚠️ *Session belum siap untuk menerima link!*
+âš ï¸ *Session belum siap untuk menerima link!*
 
-📊 Status saat ini: ${session.stage}
+ðŸ“Š Status saat ini: ${session.stage}
 
 Tunggu hingga WhatsApp berhasil terhubung, lalu coba lagi.
         `, { parse_mode: 'Markdown' });
@@ -443,17 +458,17 @@ Tunggu hingga WhatsApp berhasil terhubung, lalu coba lagi.
     }
     
     await bot.sendMessage(chatId, `
-📝 *Kirim Link Grup WhatsApp*
+ðŸ“ *Kirim Link Grup WhatsApp*
 
-📱 Session aktif: ${session.phoneNumber}
-📊 Link tersimpan: ${session.links ? session.links.length : 0}
+ðŸ“± Session aktif: ${session.phoneNumber}
+ðŸ“Š Link tersimpan: ${session.links ? session.links.length : 0}
 
-💡 *Cara mengirim link:*
-• Kirim 1 link per pesan atau beberapa sekaligus
-• Bot akan otomatis mendeteksi dan menyimpan link
-• Anda bisa mengirim link kapan saja selama session aktif
+ðŸ’¡ *Cara mengirim link:*
+â€¢ Kirim 1 link per pesan atau beberapa sekaligus
+â€¢ Bot akan otomatis mendeteksi dan menyimpan link
+â€¢ Anda bisa mengirim link kapan saja selama session aktif
 
-🔗 *Format link yang diterima:*
+ðŸ”— *Format link yang diterima:*
 https://chat.whatsapp.com/GZqg8bpwGla5M9fbJnrm79
 https://chat.whatsapp.com/ABC123xyz?mode=ems_copy_c
 
@@ -474,7 +489,7 @@ bot.onText(/\/join/, async (msg) => {
     // Check if user has active autojoin session
     if (!autoJoinSessions.has(userInfo.id)) {
         await bot.sendMessage(chatId, `
-❌ *Tidak ada session autojoin yang aktif!*
+âŒ *Tidak ada session autojoin yang aktif!*
 
 Mulai session autojoin terlebih dahulu dengan:
 \`/autojoin [nomor_wa]\`
@@ -486,30 +501,30 @@ Mulai session autojoin terlebih dahulu dengan:
     
     if (!session.links || session.links.length === 0) {
         await bot.sendMessage(chatId, `
-❌ *Belum ada link grup yang disimpan!*
+âŒ *Belum ada link grup yang disimpan!*
 
 Gunakan \`/addlinks\` untuk menambahkan link grup terlebih dahulu.
 
-📝 Atau langsung kirim link grup WhatsApp ke chat ini.
+ðŸ“ Atau langsung kirim link grup WhatsApp ke chat ini.
         `, { parse_mode: 'Markdown' });
         return;
     }
     
     // Show confirmation
     await bot.sendMessage(chatId, `
-🏯 *Konfirmasi Auto Join*
+ðŸ¯ *Konfirmasi Auto Join*
 
-📱 Nomor: ${session.phoneNumber}
-📊 Total link grup: ${session.links.length}
+ðŸ“± Nomor: ${session.phoneNumber}
+ðŸ“Š Total link grup: ${session.links.length}
 
-📋 *Link yang akan dijoin:*
+ðŸ“‹ *Link yang akan dijoin:*
 ${session.links.slice(0, 10).map((link, i) => `${i + 1}. ${link}`).join('\n')}
 ${session.links.length > 10 ? `\n... dan ${session.links.length - 10} link lainnya` : ''}
 
-⚠️ *Peringatan:*
-• Proses ini akan join SEMUA grup dalam daftar
-• Tidak dapat dibatalkan setelah dimulai
-• Estimasi waktu: ${Math.ceil(session.links.length * 1.5)} detik
+âš ï¸ *Peringatan:*
+â€¢ Proses ini akan join SEMUA grup dalam daftar
+â€¢ Tidak dapat dibatalkan setelah dimulai
+â€¢ Estimasi waktu: ${Math.ceil(session.links.length * 1.5)} detik
 
 Ketik \`/confirm\` untuk melanjutkan atau \`/cancel\` untuk membatalkan.
     `, { parse_mode: 'Markdown' });
@@ -526,14 +541,14 @@ bot.onText(/\/confirm/, async (msg) => {
     
     // Check if user has active autojoin session in confirm stage
     if (!autoJoinSessions.has(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Tidak ada session yang menunggu konfirmasi.');
+        await bot.sendMessage(chatId, 'âŒ Tidak ada session yang menunggu konfirmasi.');
         return;
     }
     
     const session = autoJoinSessions.get(userInfo.id);
     
     if (session.stage !== 'confirm_join') {
-        await bot.sendMessage(chatId, '❌ Session tidak dalam tahap konfirmasi.');
+        await bot.sendMessage(chatId, 'âŒ Session tidak dalam tahap konfirmasi.');
         return;
     }
     
@@ -551,17 +566,17 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
     };
     
     await bot.sendMessage(chatId, `
-🚀 *Memulai AutoJoin WhatsApp*
+ðŸš€ *Memulai AutoJoin WhatsApp*
 
-📱 Nomor: ${phoneNumber}
-⏱️ Estimasi waktu: 2-5 menit
+ðŸ“± Nomor: ${phoneNumber}
+â±ï¸ Estimasi waktu: 2-5 menit
 
-📞 Sedang mempersiapkan WhatsApp Web...
+ðŸ“ž Sedang mempersiapkan WhatsApp Web...
 
-💡 *Pastikan:*
-• WhatsApp aktif di ponsel dengan nomor ${phoneNumber}
-• Koneksi internet stabil
-• Jangan tutup WhatsApp selama proses
+ðŸ’¡ *Pastikan:*
+â€¢ WhatsApp aktif di ponsel dengan nomor ${phoneNumber}
+â€¢ Koneksi internet stabil
+â€¢ Jangan tutup WhatsApp selama proses
     `, { parse_mode: 'Markdown' });
     
     try {
@@ -596,20 +611,20 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
                     sessionInfo.stage = 'waiting_pairing';
                     
                     await bot.sendMessage(chatId, `
-🔑 *Kode Pairing WhatsApp*
+ðŸ”‘ *Kode Pairing WhatsApp*
 
-📱 **${pairingCode}**
+ðŸ“± **${pairingCode}**
 
-📱 *Langkah-langkah pairing:*
+ðŸ“± *Langkah-langkah pairing:*
 1. Buka WhatsApp di ponsel dengan nomor **${phoneNumber}**
-2. Tap Menu (⋮) → Perangkat Tertaut
+2. Tap Menu (â‹®) â†’ Perangkat Tertaut
 3. Tap "Tautkan Perangkat"
 4. Tap "Tautkan dengan nomor telepon"
 5. Masukkan kode: **${pairingCode}**
 
-⏳ Menunggu konfirmasi pairing untuk nomor ${phoneNumber}...
+â³ Menunggu konfirmasi pairing untuk nomor ${phoneNumber}...
 
-⚠️ *Penting:* Pastikan Anda menggunakan WhatsApp dengan nomor yang sama!
+âš ï¸ *Penting:* Pastikan Anda menggunakan WhatsApp dengan nomor yang sama!
                     `, { parse_mode: 'Markdown' });
                 }
             }
@@ -620,20 +635,20 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
                 autoJoinSessions.set(userInfo.id, sessionInfo);
                 
                 await bot.sendMessage(chatId, `
-✅ *WhatsApp Berhasil Terhubung!*
+âœ… *WhatsApp Berhasil Terhubung!*
 
-📱 Nomor ${phoneNumber} telah terhubung
-🏯 Session autojoin siap digunakan
+ðŸ“± Nomor ${phoneNumber} telah terhubung
+ðŸ¯ Session autojoin siap digunakan
 
-📝 *Langkah selanjutnya:*
-• Gunakan \`/addlinks\` untuk menambah link grup
-• Atau langsung kirim link grup WhatsApp ke chat ini
-• Setelah selesai, gunakan \`/join\` untuk memulai join
+ðŸ“ *Langkah selanjutnya:*
+â€¢ Gunakan \`/addlinks\` untuk menambah link grup
+â€¢ Atau langsung kirim link grup WhatsApp ke chat ini
+â€¢ Setelah selesai, gunakan \`/join\` untuk memulai join
 
-💡 *Tips:*
-• Anda bisa mengirim banyak link sekaligus
-• Link akan otomatis tersimpan dan divalidasi
-• Session akan aktif selama 30 menit
+ðŸ’¡ *Tips:*
+â€¢ Anda bisa mengirim banyak link sekaligus
+â€¢ Link akan otomatis tersimpan dan divalidasi
+â€¢ Session akan aktif selama 30 menit
                 `, { parse_mode: 'Markdown' });
             }
         });
@@ -653,12 +668,12 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
                 // Process completed successfully, but don't clean up session yet
                 // Wait for results to be processed first
                 await bot.sendMessage(chatId, `
-✅ *Proses AutoJoin Selesai!*
+âœ… *Proses AutoJoin Selesai!*
 
-📱 Nomor: ${phoneNumber}
-🏯 Semua grup telah diproses
+ðŸ“± Nomor: ${phoneNumber}
+ðŸ¯ Semua grup telah diproses
 
-📊 Sedang mempersiapkan laporan hasil...
+ðŸ“Š Sedang mempersiapkan laporan hasil...
                 `, { parse_mode: 'Markdown' });
             } else {
                 // Process failed, clean up session
@@ -666,21 +681,21 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
                 cleanupAutoJoinSession(userInfo.id, phoneNumber);
                 
                 await bot.sendMessage(chatId, `
-❌ *Proses AutoJoin Gagal*
+âŒ *Proses AutoJoin Gagal*
 
-📱 Nomor: ${phoneNumber}
-💥 Terjadi kesalahan saat proses autojoin.
+ðŸ“± Nomor: ${phoneNumber}
+ðŸ’¥ Terjadi kesalahan saat proses autojoin.
 
 **Kemungkinan penyebab:**
-• Kode pairing salah atau expired
-• Nomor WhatsApp tidak sesuai atau tidak aktif
-• Koneksi internet bermasalah
-• Session timeout
+â€¢ Kode pairing salah atau expired
+â€¢ Nomor WhatsApp tidak sesuai atau tidak aktif
+â€¢ Koneksi internet bermasalah
+â€¢ Session timeout
 
-💡 **Solusi:**
-• Pastikan menggunakan nomor WhatsApp yang benar
-• Coba lagi dengan \`/autojoin ${phoneNumber}\`
-• Pastikan WhatsApp aktif di ponsel
+ðŸ’¡ **Solusi:**
+â€¢ Pastikan menggunakan nomor WhatsApp yang benar
+â€¢ Coba lagi dengan \`/autojoin ${phoneNumber}\`
+â€¢ Pastikan WhatsApp aktif di ponsel
                 `, { parse_mode: 'Markdown' });
             }
             
@@ -695,11 +710,11 @@ async function startAutoJoinProcess(chatId, userInfo, phoneNumber) {
             cleanupAutoJoinSession(userInfo.id, phoneNumber);
             
             await bot.sendMessage(chatId, `
-❌ *Kesalahan Sistem*
+âŒ *Kesalahan Sistem*
 
 Terjadi kesalahan saat memulai proses autojoin.
 
-💡 Silakan coba lagi dengan \`/autojoin ${phoneNumber}\`
+ðŸ’¡ Silakan coba lagi dengan \`/autojoin ${phoneNumber}\`
             `, { parse_mode: 'Markdown' });
             
             await logActivity('AUTOJOIN_ERROR', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
@@ -717,14 +732,14 @@ Terjadi kesalahan saat memulai proses autojoin.
                     cleanupAutoJoinSession(userInfo.id, phoneNumber);
                     
                     await bot.sendMessage(chatId, `
-⏰ *Session AutoJoin Timeout*
+â° *Session AutoJoin Timeout*
 
-📱 Nomor: ${phoneNumber}
-⏱️ Waktu: 30 menit (maximum)
+ðŸ“± Nomor: ${phoneNumber}
+â±ï¸ Waktu: 30 menit (maximum)
 
 Session dihentikan karena melebihi batas waktu maksimum.
 
-💡 Silakan mulai session baru dengan \`/autojoin ${phoneNumber}\`
+ðŸ’¡ Silakan mulai session baru dengan \`/autojoin ${phoneNumber}\`
                     `, { parse_mode: 'Markdown' });
                     
                     await logActivity('AUTOJOIN_TIMEOUT', userInfo, `Phone: ${phoneNumber}`);
@@ -739,11 +754,11 @@ Session dihentikan karena melebihi batas waktu maksimum.
         autoJoinSessions.delete(userInfo.id);
         
         await bot.sendMessage(chatId, `
-❌ *Gagal Memulai AutoJoin*
+âŒ *Gagal Memulai AutoJoin*
 
 Terjadi kesalahan saat memulai proses untuk nomor ${phoneNumber}.
 
-💡 Silakan coba lagi dengan \`/autojoin ${phoneNumber}\`
+ðŸ’¡ Silakan coba lagi dengan \`/autojoin ${phoneNumber}\`
         `, { parse_mode: 'Markdown' });
         
         await logActivity('AUTOJOIN_START_ERROR', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
@@ -762,22 +777,22 @@ async function startJoinProcess(chatId, userInfo, session) {
         autoJoinSessions.set(userInfo.id, session);
         
         await bot.sendMessage(chatId, `
-🏯 *Memulai Proses Join Grup*
+ðŸ¯ *Memulai Proses Join Grup*
 
-📱 Nomor: ${session.phoneNumber}
-📊 Total grup: ${session.links.length}
-⏱️ Estimasi waktu: ${Math.ceil(session.links.length * 1.5)} detik
+ðŸ“± Nomor: ${session.phoneNumber}
+ðŸ“Š Total grup: ${session.links.length}
+â±ï¸ Estimasi waktu: ${Math.ceil(session.links.length * 1.5)} detik
 
-🚀 Sedang join grup satu per satu...
+ðŸš€ Sedang join grup satu per satu...
 
-💡 Proses akan berjalan otomatis dengan delay 0-1 detik per grup untuk menghindari spam detection.
+ðŸ’¡ Proses akan berjalan otomatis dengan delay 0-1 detik per grup untuk menghindari spam detection.
         `, { parse_mode: 'Markdown' });
         
         await logActivity('JOIN_PROCESS_STARTED', userInfo, `Phone: ${session.phoneNumber}, Links: ${session.links.length}`);
         
     } catch (error) {
         console.error('Error starting join process:', error);
-        await bot.sendMessage(chatId, '❌ Gagal memulai proses join. Silakan coba lagi.');
+        await bot.sendMessage(chatId, 'âŒ Gagal memulai proses join. Silakan coba lagi.');
     }
 }
 
@@ -871,19 +886,19 @@ async function sendJoinResults(chatId, phoneNumber, userId, session) {
                 
                 // Send summary message first
                 await bot.sendMessage(chatId, `
-🏆 *AutoJoin Selesai!*
+ðŸ† *AutoJoin Selesai!*
 
-📱 **Nomor:** ${phoneNumber}
-📊 **Hasil Join:**
+ðŸ“± **Nomor:** ${phoneNumber}
+ðŸ“Š **Hasil Join:**
 
-✅ **Berhasil join:** ${successful.length} grup
-👥 **Sudah member:** ${alreadyMember.length} grup
-❌ **Gagal join:** ${failed.length} grup
-📊 **Total diproses:** ${totalProcessed} grup
+âœ… **Berhasil join:** ${successful.length} grup
+ðŸ‘¥ **Sudah member:** ${alreadyMember.length} grup
+âŒ **Gagal join:** ${failed.length} grup
+ðŸ“Š **Total diproses:** ${totalProcessed} grup
 
-⏱️ **Selesai pada:** ${new Date().toLocaleString('id-ID')}
+â±ï¸ **Selesai pada:** ${new Date().toLocaleString('id-ID')}
 
-📄 Mengirim laporan hasil...
+ðŸ“„ Mengirim laporan hasil...
                 `, { parse_mode: 'Markdown' });
                 
                 // Create and send TXT file with successful links only
@@ -895,7 +910,7 @@ async function sendJoinResults(chatId, phoneNumber, userId, session) {
                     console.log(`Created TXT file: ${txtFileName} with ${successful.length} successful links`);
                     
                     await bot.sendDocument(chatId, txtFileName, {
-                        caption: `📄 **Link Grup yang Berhasil Dijoin**\n\n✅ ${successful.length} grup berhasil dijoin\n📱 Nomor: ${phoneNumber}`
+                        caption: `ðŸ“„ **Link Grup yang Berhasil Dijoin**\n\nâœ… ${successful.length} grup berhasil dijoin\nðŸ“± Nomor: ${phoneNumber}`
                     });
                     
                     console.log(`TXT file sent successfully to chat ${chatId}`);
@@ -913,23 +928,23 @@ async function sendJoinResults(chatId, phoneNumber, userId, session) {
                     }, 10000); // 10 seconds delay
                 } else {
                     await bot.sendMessage(chatId, `
-📄 **Tidak ada grup yang berhasil dijoin**
+ðŸ“„ **Tidak ada grup yang berhasil dijoin**
 
-❌ Semua ${totalProcessed} grup gagal dijoin atau sudah menjadi member.
+âŒ Semua ${totalProcessed} grup gagal dijoin atau sudah menjadi member.
 
 **Kemungkinan penyebab:**
-• Link grup sudah expired atau tidak valid
-• Grup sudah private atau tidak menerima member baru
-• Anda sudah menjadi member di semua grup
-• Rate limit dari WhatsApp
+â€¢ Link grup sudah expired atau tidak valid
+â€¢ Grup sudah private atau tidak menerima member baru
+â€¢ Anda sudah menjadi member di semua grup
+â€¢ Rate limit dari WhatsApp
 
-💡 Coba gunakan link grup yang lebih baru dan pastikan masih aktif.
+ðŸ’¡ Coba gunakan link grup yang lebih baru dan pastikan masih aktif.
                     `, { parse_mode: 'Markdown' });
                 }
                 
                 // Also send JSON report for detailed info
                 await bot.sendDocument(chatId, latestReportFile, {
-                    caption: `📋 **Laporan Detail AutoJoin**\n\n📱 Nomor: ${phoneNumber}\n📊 Total: ${totalProcessed} grup\n🕐 ${new Date().toLocaleString('id-ID')}`
+                    caption: `ðŸ“‹ **Laporan Detail AutoJoin**\n\nðŸ“± Nomor: ${phoneNumber}\nðŸ“Š Total: ${totalProcessed} grup\nðŸ• ${new Date().toLocaleString('id-ID')}`
                 });
                 
                 // Cleanup report file after sending
@@ -947,10 +962,10 @@ async function sendJoinResults(chatId, phoneNumber, userId, session) {
             } catch (fileError) {
                 console.error('Error reading report file:', fileError);
                 await bot.sendMessage(chatId, `
-❌ **Error membaca laporan hasil**
+âŒ **Error membaca laporan hasil**
 
-📱 Nomor: ${phoneNumber}
-💥 Terjadi kesalahan saat membaca file laporan.
+ðŸ“± Nomor: ${phoneNumber}
+ðŸ’¥ Terjadi kesalahan saat membaca file laporan.
 
 Proses mungkin sudah selesai tetapi laporan tidak dapat dibaca.
                 `, { parse_mode: 'Markdown' });
@@ -958,32 +973,32 @@ Proses mungkin sudah selesai tetapi laporan tidak dapat dibaca.
         } else {
             console.log(`No report files found for phone ${phoneNumber}`);
             await bot.sendMessage(chatId, `
-⚠️ **File laporan tidak ditemukan**
+âš ï¸ **File laporan tidak ditemukan**
 
-📱 Nomor: ${phoneNumber}
-📊 Proses mungkin belum selesai sepenuhnya atau terjadi kesalahan.
+ðŸ“± Nomor: ${phoneNumber}
+ðŸ“Š Proses mungkin belum selesai sepenuhnya atau terjadi kesalahan.
 
-💡 Gunakan \`/status\` untuk cek status atau coba lagi dengan \`/autojoin ${phoneNumber}\`
+ðŸ’¡ Gunakan \`/status\` untuk cek status atau coba lagi dengan \`/autojoin ${phoneNumber}\`
             `, { parse_mode: 'Markdown' });
         }
         
         // Send final completion message
         await bot.sendMessage(chatId, `
-🎯 **AutoJoin Session Ditutup**
+ðŸŽ¯ **AutoJoin Session Ditutup**
 
-📱 **Nomor:** ${phoneNumber}
-📊 **Statistik Final:**
-✅ Berhasil join: **${successful.length}** grup
-👥 Sudah member: **${alreadyMember.length}** grup  
-❌ Gagal join: **${failed.length}** grup
+ðŸ“± **Nomor:** ${phoneNumber}
+ðŸ“Š **Statistik Final:**
+âœ… Berhasil join: **${successful.length}** grup
+ðŸ‘¥ Sudah member: **${alreadyMember.length}** grup  
+âŒ Gagal join: **${failed.length}** grup
 
-🗂️ **File yang dikirim:**
-${successful.length > 0 ? '• Daftar link berhasil (TXT)' : '• Tidak ada link berhasil'}
-• Laporan detail (JSON)
+ðŸ—‚ï¸ **File yang dikirim:**
+${successful.length > 0 ? 'â€¢ Daftar link berhasil (TXT)' : 'â€¢ Tidak ada link berhasil'}
+â€¢ Laporan detail (JSON)
 
-🔒 **Keamanan:** Session WhatsApp telah dihapus otomatis.
+ðŸ”’ **Keamanan:** Session WhatsApp telah dihapus otomatis.
 
-💡 Gunakan \`/autojoin [nomor]\` untuk session baru.
+ðŸ’¡ Gunakan \`/autojoin [nomor]\` untuk session baru.
         `, { parse_mode: 'Markdown' });
         
         await logActivity('AUTOJOIN_RESULTS_SENT', { id: userId }, `Phone: ${phoneNumber}, Success: ${successful.length}, Total: ${totalProcessed}`);
@@ -996,13 +1011,13 @@ ${successful.length > 0 ? '• Daftar link berhasil (TXT)' : '• Tidak ada link
         cleanupAutoJoinSession(userId, phoneNumber);
         
         await bot.sendMessage(chatId, `
-❌ **Kesalahan mengirim laporan**
+âŒ **Kesalahan mengirim laporan**
 
-📱 Nomor: ${phoneNumber}
-💥 Terjadi kesalahan saat mengirim hasil.
+ðŸ“± Nomor: ${phoneNumber}
+ðŸ’¥ Terjadi kesalahan saat mengirim hasil.
 
-🔒 Session telah ditutup untuk keamanan.
-💡 Silakan coba lagi dengan \`/autojoin ${phoneNumber}\`
+ðŸ”’ Session telah ditutup untuk keamanan.
+ðŸ’¡ Silakan coba lagi dengan \`/autojoin ${phoneNumber}\`
         `, { parse_mode: 'Markdown' });
     }
 }
@@ -1049,26 +1064,26 @@ bot.on('message', async (msg) => {
                     saveAutoJoinLinks(userInfo.id, session.phoneNumber, session.links);
                     
                     await bot.sendMessage(chatId, `
-✅ *Link Grup Berhasil Ditambahkan*
+âœ… *Link Grup Berhasil Ditambahkan*
 
-📊 **Link baru:** ${newLinks.length}
-📊 **Total link:** ${session.links.length}
-📱 **Session:** ${session.phoneNumber}
+ðŸ“Š **Link baru:** ${newLinks.length}
+ðŸ“Š **Total link:** ${session.links.length}
+ðŸ“± **Session:** ${session.phoneNumber}
 
-💡 *Link yang ditambahkan:*
+ðŸ’¡ *Link yang ditambahkan:*
 ${newLinks.slice(0, 5).map((link, i) => `${i + 1}. ${link.substring(0, 50)}...`).join('\n')}
 ${newLinks.length > 5 ? `\n... dan ${newLinks.length - 5} link lainnya` : ''}
 
-📝 **Lanjutkan:**
-• Kirim lebih banyak link grup, atau
-• Gunakan \`/join\` untuk mulai join semua grup
+ðŸ“ **Lanjutkan:**
+â€¢ Kirim lebih banyak link grup, atau
+â€¢ Gunakan \`/join\` untuk mulai join semua grup
 
-⏳ Session aktif hingga ${new Date(session.startTime + 30 * 60 * 1000).toLocaleString('id-ID')}
+â³ Session aktif hingga ${new Date(session.startTime + 30 * 60 * 1000).toLocaleString('id-ID')}
                     `, { parse_mode: 'Markdown' });
                     
                     await logActivity('LINKS_ADDED', userInfo, `Phone: ${session.phoneNumber}, New: ${newLinks.length}, Total: ${session.links.length}`);
                 } else {
-                    await bot.sendMessage(chatId, '❌ Link grup tidak valid atau sudah ada dalam daftar.');
+                    await bot.sendMessage(chatId, 'âŒ Link grup tidak valid atau sudah ada dalam daftar.');
                 }
             }
         }
@@ -1084,31 +1099,31 @@ bot.onText(/\/addadmin(?:\s+(\d+))?/, async (msg, match) => {
     
     // Check if user is owner
     if (!isOwner(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Hanya owner yang dapat menambahkan admin baru.');
+        await bot.sendMessage(chatId, 'âŒ Hanya owner yang dapat menambahkan admin baru.');
         return;
     }
     
     // Check if target user ID is provided
     if (!targetUserId) {
         await bot.sendMessage(chatId, `
-❌ *Format perintah salah!*
+âŒ *Format perintah salah!*
 
 Gunakan format: \`/addadmin [user_id]\`
 
-🔢 *Contoh:*
+ðŸ”¢ *Contoh:*
 \`/addadmin 123456789\`
 
-💡 *Tips:*
-• User ID adalah nomor ID unik Telegram
-• User bisa mendapatkan ID mereka dengan mengirim pesan ke bot @userinfobot
-• Pastikan ID yang dimasukkan benar
+ðŸ’¡ *Tips:*
+â€¢ User ID adalah nomor ID unik Telegram
+â€¢ User bisa mendapatkan ID mereka dengan mengirim pesan ke bot @userinfobot
+â€¢ Pastikan ID yang dimasukkan benar
         `, { parse_mode: 'Markdown' });
         return;
     }
     
     // Check if target is owner
     if (targetUserId === OWNER_ID) {
-        await bot.sendMessage(chatId, '❌ Owner sudah otomatis menjadi admin.');
+        await bot.sendMessage(chatId, 'âŒ Owner sudah otomatis menjadi admin.');
         return;
     }
     
@@ -1117,7 +1132,7 @@ Gunakan format: \`/addadmin [user_id]\`
     
     // Check if user is already admin
     if (currentAdmins.includes(targetUserId)) {
-        await bot.sendMessage(chatId, `❌ User ID ${targetUserId} sudah menjadi admin.`);
+        await bot.sendMessage(chatId, `âŒ User ID ${targetUserId} sudah menjadi admin.`);
         return;
     }
     
@@ -1126,12 +1141,12 @@ Gunakan format: \`/addadmin [user_id]\`
     
     if (saveAdmins(newAdmins)) {
         await bot.sendMessage(chatId, `
-✅ *Admin Berhasil Ditambahkan!*
+âœ… *Admin Berhasil Ditambahkan!*
 
-👤 **User ID:** ${targetUserId}
-📊 **Total admin sekarang:** ${newAdmins.length + 1} (termasuk owner)
+ðŸ‘¤ **User ID:** ${targetUserId}
+ðŸ“Š **Total admin sekarang:** ${newAdmins.length + 1} (termasuk owner)
 
-💡 Admin baru dapat langsung menggunakan fitur ekstraksi.
+ðŸ’¡ Admin baru dapat langsung menggunakan fitur ekstraksi.
 
 Gunakan \`/showadmin\` untuk melihat semua admin.
         `, { parse_mode: 'Markdown' });
@@ -1141,11 +1156,11 @@ Gunakan \`/showadmin\` untuk melihat semua admin.
         // Try to notify the new admin (optional, might fail if they haven't started the bot)
         try {
             await bot.sendMessage(targetUserId, `
-🏆 *Anda telah ditambahkan sebagai admin!*
+ðŸ† *Anda telah ditambahkan sebagai admin!*
 
-✅ Anda sekarang dapat menggunakan fitur ekstraksi grup WhatsApp.
+âœ… Anda sekarang dapat menggunakan fitur ekstraksi grup WhatsApp.
 
-📋 Gunakan \`/help\` untuk melihat perintah yang tersedia.
+ðŸ“‹ Gunakan \`/help\` untuk melihat perintah yang tersedia.
 
 Mulai dengan \`/extract [nomor_wa]\` untuk mengekstrak grup.
             `, { parse_mode: 'Markdown' });
@@ -1154,7 +1169,7 @@ Mulai dengan \`/extract [nomor_wa]\` untuk mengekstrak grup.
             console.log(`Could not notify new admin ${targetUserId}: ${error.message}`);
         }
     } else {
-        await bot.sendMessage(chatId, '❌ Gagal menyimpan admin baru. Silakan coba lagi.');
+        await bot.sendMessage(chatId, 'âŒ Gagal menyimpan admin baru. Silakan coba lagi.');
     }
 });
 
@@ -1166,40 +1181,40 @@ bot.onText(/\/showadmin/, async (msg) => {
     
     // Check if user is owner
     if (!isOwner(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Hanya owner yang dapat melihat daftar admin.');
+        await bot.sendMessage(chatId, 'âŒ Hanya owner yang dapat melihat daftar admin.');
         return;
     }
     
     const admins = loadAdmins();
     
-    let adminList = `👑 **Owner:** ${OWNER_ID}\n\n`;
+    let adminList = `ðŸ‘‘ **Owner:** ${OWNER_ID}\n\n`;
     
     if (admins.length > 0) {
-        adminList += `✅ **Admin List:**\n`;
+        adminList += `âœ… **Admin List:**\n`;
         admins.forEach((adminId, index) => {
             if (adminId !== OWNER_ID) { // Don't show owner twice
                 adminList += `${index + 1}. ${adminId}\n`;
             }
         });
     } else {
-        adminList += `📝 **Admin List:** Kosong (hanya owner)`;
+        adminList += `ðŸ“ **Admin List:** Kosong (hanya owner)`;
     }
     
     const totalAdmins = admins.filter(id => id !== OWNER_ID).length;
     
     await bot.sendMessage(chatId, `
-👥 *Daftar Admin Bot*
+ðŸ‘¥ *Daftar Admin Bot*
 
 ${adminList}
 
-📊 **Statistik:**
-• Total admin: ${totalAdmins}
-• Total pengguna authorized: ${totalAdmins + 1} (termasuk owner)
+ðŸ“Š **Statistik:**
+â€¢ Total admin: ${totalAdmins}
+â€¢ Total pengguna authorized: ${totalAdmins + 1} (termasuk owner)
 
-💡 Gunakan \`/addadmin [user_id]\` untuk menambah admin baru.
-💡 Gunakan \`/removeadmin [user_id]\` untuk menghapus admin.
+ðŸ’¡ Gunakan \`/addadmin [user_id]\` untuk menambah admin baru.
+ðŸ’¡ Gunakan \`/removeadmin [user_id]\` untuk menghapus admin.
 
-🕐 **Last updated:** ${new Date().toLocaleString('id-ID')}
+ðŸ• **Last updated:** ${new Date().toLocaleString('id-ID')}
     `, { parse_mode: 'Markdown' });
 });
 
@@ -1212,31 +1227,31 @@ bot.onText(/\/removeadmin(?:\s+(\d+))?/, async (msg, match) => {
     
     // Check if user is owner
     if (!isOwner(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Hanya owner yang dapat menghapus admin.');
+        await bot.sendMessage(chatId, 'âŒ Hanya owner yang dapat menghapus admin.');
         return;
     }
     
     // Check if target user ID is provided
     if (!targetUserId) {
         await bot.sendMessage(chatId, `
-❌ *Format perintah salah!*
+âŒ *Format perintah salah!*
 
 Gunakan format: \`/removeadmin [user_id]\`
 
-🔢 *Contoh:*
+ðŸ”¢ *Contoh:*
 \`/removeadmin 123456789\`
 
-💡 *Tips:*
-• Masukkan User ID yang ingin dihapus dari admin
-• Gunakan \`/showadmin\` untuk melihat daftar admin
-• Owner tidak dapat dihapus dari sistem
+ðŸ’¡ *Tips:*
+â€¢ Masukkan User ID yang ingin dihapus dari admin
+â€¢ Gunakan \`/showadmin\` untuk melihat daftar admin
+â€¢ Owner tidak dapat dihapus dari sistem
         `, { parse_mode: 'Markdown' });
         return;
     }
     
     // Check if trying to remove owner
     if (targetUserId === OWNER_ID) {
-        await bot.sendMessage(chatId, '❌ Owner tidak dapat dihapus dari sistem admin.');
+        await bot.sendMessage(chatId, 'âŒ Owner tidak dapat dihapus dari sistem admin.');
         return;
     }
     
@@ -1245,7 +1260,7 @@ Gunakan format: \`/removeadmin [user_id]\`
     
     // Check if user is actually an admin
     if (!currentAdmins.includes(targetUserId)) {
-        await bot.sendMessage(chatId, `❌ User ID ${targetUserId} bukan admin atau tidak ditemukan.`);
+        await bot.sendMessage(chatId, `âŒ User ID ${targetUserId} bukan admin atau tidak ditemukan.`);
         return;
     }
     
@@ -1254,12 +1269,12 @@ Gunakan format: \`/removeadmin [user_id]\`
     
     if (saveAdmins(newAdmins)) {
         await bot.sendMessage(chatId, `
-✅ *Admin Berhasil Dihapus!*
+âœ… *Admin Berhasil Dihapus!*
 
-👤 **User ID yang dihapus:** ${targetUserId}
-📊 **Total admin sekarang:** ${newAdmins.filter(id => id !== OWNER_ID).length} (tidak termasuk owner)
+ðŸ‘¤ **User ID yang dihapus:** ${targetUserId}
+ðŸ“Š **Total admin sekarang:** ${newAdmins.filter(id => id !== OWNER_ID).length} (tidak termasuk owner)
 
-💡 User ini tidak dapat lagi menggunakan fitur ekstraksi.
+ðŸ’¡ User ini tidak dapat lagi menggunakan fitur ekstraksi.
 
 Gunakan \`/showadmin\` untuk melihat admin yang tersisa.
         `, { parse_mode: 'Markdown' });
@@ -1269,20 +1284,20 @@ Gunakan \`/showadmin\` untuk melihat admin yang tersisa.
         // Try to notify the removed admin (optional, might fail if they haven't started the bot)
         try {
             await bot.sendMessage(targetUserId, `
-⚠️ *Status Admin Dicabut*
+âš ï¸ *Status Admin Dicabut*
 
-❌ Anda telah dihapus dari daftar admin bot.
+âŒ Anda telah dihapus dari daftar admin bot.
 
-🔒 Anda tidak dapat lagi menggunakan fitur ekstraksi grup WhatsApp.
+ðŸ”’ Anda tidak dapat lagi menggunakan fitur ekstraksi grup WhatsApp.
 
-💡 Hubungi owner jika ada kesalahan atau untuk mendapatkan akses kembali.
+ðŸ’¡ Hubungi owner jika ada kesalahan atau untuk mendapatkan akses kembali.
             `, { parse_mode: 'Markdown' });
         } catch (error) {
             // User might have blocked bot or not started it, ignore error
             console.log(`Could not notify removed admin ${targetUserId}: ${error.message}`);
         }
     } else {
-        await bot.sendMessage(chatId, '❌ Gagal menghapus admin. Silakan coba lagi.');
+        await bot.sendMessage(chatId, 'âŒ Gagal menghapus admin. Silakan coba lagi.');
     }
 });
 
@@ -1295,26 +1310,26 @@ bot.onText(/\/extract(?:\s+(\S+))?/, async (msg, match) => {
     
     // Check if user is admin
     if (!isAdmin(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Maaf, hanya admin yang dapat menggunakan fitur ini.');
+        await bot.sendMessage(chatId, 'âŒ Maaf, hanya admin yang dapat menggunakan fitur ini.');
         return;
     }
     
     // Check if phone number is provided
     if (!phoneNumber) {
         await bot.sendMessage(chatId, `
-❌ *Format perintah salah!*
+âŒ *Format perintah salah!*
 
 Gunakan format: \`/extract [nomor_wa]\`
 
-📱 *Contoh:*
+ðŸ“± *Contoh:*
 \`/extract 628123456789\` (Indonesia)
 \`/extract 60123456789\` (Malaysia)
 \`/extract 6512345678\` (Singapura)
 
-💡 *Tips:*
-• Gunakan nomor WhatsApp Anda sendiri
-• Format internasional tanpa tanda + atau spasi
-• Pastikan nomor aktif dan terhubung dengan WhatsApp
+ðŸ’¡ *Tips:*
+â€¢ Gunakan nomor WhatsApp Anda sendiri
+â€¢ Format internasional tanpa tanda + atau spasi
+â€¢ Pastikan nomor aktif dan terhubung dengan WhatsApp
         `, { parse_mode: 'Markdown' });
         return;
     }
@@ -1322,16 +1337,16 @@ Gunakan format: \`/extract [nomor_wa]\`
     // Validate phone number
     const phoneValidation = validatePhoneNumber(phoneNumber);
     if (!phoneValidation.valid) {
-        await bot.sendMessage(chatId, `❌ ${phoneValidation.error}`);
+        await bot.sendMessage(chatId, `âŒ ${phoneValidation.error}`);
         return;
     }
     
     // Check if user already has active process
     if (activeProcesses.has(userInfo.id)) {
         await bot.sendMessage(chatId, `
-⚠️ Anda sudah memiliki proses yang sedang berjalan!
+âš ï¸ Anda sudah memiliki proses yang sedang berjalan!
 
-📱 Nomor aktif: ${activeProcesses.get(userInfo.id).phoneNumber}
+ðŸ“± Nomor aktif: ${activeProcesses.get(userInfo.id).phoneNumber}
 
 Gunakan \`/status\` untuk melihat status atau \`/cancel\` untuk membatalkan.
         `, { parse_mode: 'Markdown' });
@@ -1341,7 +1356,7 @@ Gunakan \`/status\` untuk melihat status atau \`/cancel\` untuk membatalkan.
     // Check if user has active autojoin session
     if (autoJoinSessions.has(userInfo.id)) {
         await bot.sendMessage(chatId, `
-⚠️ Anda sudah memiliki session autojoin yang aktif!
+âš ï¸ Anda sudah memiliki session autojoin yang aktif!
 
 Gunakan \`/cancel\` untuk membatalkan session autojoin terlebih dahulu.
         `);
@@ -1366,14 +1381,14 @@ bot.onText(/\/status/, async (msg) => {
         const duration = Math.floor((Date.now() - processInfo.startTime) / 1000);
         
         statusMessage += `
-📊 *Status Ekstraksi*
+ðŸ“Š *Status Ekstraksi*
 
-📞 Status: Sedang berjalan
-📱 Nomor: ${processInfo.phoneNumber}
-⏱️ Durasi: ${duration} detik
-🏯 Tahap: ${processInfo.stage || 'Inisialisasi'}
+ðŸ“ž Status: Sedang berjalan
+ðŸ“± Nomor: ${processInfo.phoneNumber}
+â±ï¸ Durasi: ${duration} detik
+ðŸ¯ Tahap: ${processInfo.stage || 'Inisialisasi'}
 
-⏳ Silakan tunggu proses selesai...
+â³ Silakan tunggu proses selesai...
         `;
     }
     
@@ -1383,21 +1398,21 @@ bot.onText(/\/status/, async (msg) => {
         const duration = Math.floor((Date.now() - session.startTime) / 1000);
         
         statusMessage += `
-🤖 *Status AutoJoin*
+ðŸ¤– *Status AutoJoin*
 
-📞 Status: ${session.stage}
-📱 Nomor: ${session.phoneNumber}
-⏱️ Durasi: ${duration} detik
-📊 Link tersimpan: ${session.links ? session.links.length : 0}
+ðŸ“ž Status: ${session.stage}
+ðŸ“± Nomor: ${session.phoneNumber}
+â±ï¸ Durasi: ${duration} detik
+ðŸ“Š Link tersimpan: ${session.links ? session.links.length : 0}
 
 ${session.stage === 'connected' || session.stage === 'waiting_links' ? 
-  '💡 Gunakan `/addlinks` untuk menambah link atau langsung kirim link grup.' : 
-  '⏳ Silakan tunggu proses selesai...'}
+  'ðŸ’¡ Gunakan `/addlinks` untuk menambah link atau langsung kirim link grup.' : 
+  'â³ Silakan tunggu proses selesai...'}
         `;
     }
     
     if (!statusMessage) {
-        statusMessage = '✅ Tidak ada proses yang sedang berjalan.\n\n• Gunakan `/extract [nomor_wa]` untuk ekstraksi grup\n• Gunakan `/autojoin [nomor_wa]` untuk auto join grup';
+        statusMessage = 'âœ… Tidak ada proses yang sedang berjalan.\n\nâ€¢ Gunakan `/extract [nomor_wa]` untuk ekstraksi grup\nâ€¢ Gunakan `/autojoin [nomor_wa]` untuk auto join grup';
     }
     
     await bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
@@ -1410,7 +1425,7 @@ bot.onText(/\/cancel/, async (msg) => {
     await logActivity('CANCEL_COMMAND', userInfo);
     
     if (!isAdmin(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Hanya admin yang dapat membatalkan proses.');
+        await bot.sendMessage(chatId, 'âŒ Hanya admin yang dapat membatalkan proses.');
         return;
     }
     
@@ -1418,31 +1433,35 @@ bot.onText(/\/cancel/, async (msg) => {
     
     // Cancel extraction process
     if (activeProcesses.has(userInfo.id)) {
-        const processInfo = activeProcesses.get(userInfo.id);
+    const processInfo = activeProcesses.get(userInfo.id);
+    
+    try {
+        processInfo.process.kill('SIGTERM');
+        activeProcesses.delete(userInfo.id);
         
-        try {
-            processInfo.process.kill('SIGTERM');
-            activeProcesses.delete(userInfo.id);
-            
-            // Clean up session files
-            cleanupExtractionSession(userInfo.id, processInfo.phoneNumber);
-            cancelled = true;
-            
-            await bot.sendMessage(chatId, `
+        // Clean up session saat cancel
+        setTimeout(() => {
+            cleanupExtractionSession(processInfo.phoneNumber);
+        }, 2000);
+        
+        cancelled = true;
+        
+        await bot.sendMessage(chatId, `
 ✅ *Proses Ekstraksi Dibatalkan*
 
 📱 Nomor: ${processInfo.phoneNumber}
 ⏱️ Durasi sebelum dibatalkan: ${Math.floor((Date.now() - processInfo.startTime) / 1000)} detik
+🗂️ Session files akan dibersihkan otomatis
 
-🔒 Session telah dibersihkan.
-            `, { parse_mode: 'Markdown' });
-            
-            await logActivity('EXTRACTION_CANCELLED', userInfo, `Phone: ${processInfo.phoneNumber}`);
-        } catch (error) {
-            await bot.sendMessage(chatId, '❌ Gagal membatalkan proses ekstraksi.');
-            console.error('Error cancelling extraction process:', error);
-        }
+🔒 Semua file session dan auth telah dihapus untuk keamanan.
+        `, { parse_mode: 'Markdown' });
+        
+        await logActivity('EXTRACTION_CANCELLED_WITH_CLEANUP', userInfo, `Phone: ${processInfo.phoneNumber}`);
+    } catch (error) {
+        await bot.sendMessage(chatId, '❌ Gagal membatalkan proses ekstraksi.');
+        console.error('Error cancelling extraction process:', error);
     }
+}
     
     // Cancel autojoin session
     if (autoJoinSessions.has(userInfo.id)) {
@@ -1457,24 +1476,24 @@ bot.onText(/\/cancel/, async (msg) => {
             cancelled = true;
             
             await bot.sendMessage(chatId, `
-✅ *Session AutoJoin Dibatalkan*
+âœ… *Session AutoJoin Dibatalkan*
 
-📱 Nomor: ${session.phoneNumber}
-📊 Link tersimpan: ${session.links ? session.links.length : 0}
-⏱️ Durasi: ${Math.floor((Date.now() - session.startTime) / 1000)} detik
+ðŸ“± Nomor: ${session.phoneNumber}
+ðŸ“Š Link tersimpan: ${session.links ? session.links.length : 0}
+â±ï¸ Durasi: ${Math.floor((Date.now() - session.startTime) / 1000)} detik
 
-🗑️ File session telah dibersihkan.
+ðŸ—‘ï¸ File session telah dibersihkan.
             `, { parse_mode: 'Markdown' });
             
             await logActivity('AUTOJOIN_CANCELLED', userInfo, `Phone: ${session.phoneNumber}`);
         } catch (error) {
-            await bot.sendMessage(chatId, '❌ Gagal membatalkan session autojoin.');
+            await bot.sendMessage(chatId, 'âŒ Gagal membatalkan session autojoin.');
             console.error('Error cancelling autojoin session:', error);
         }
     }
     
     if (!cancelled) {
-        await bot.sendMessage(chatId, '❌ Tidak ada proses yang sedang berjalan.\n\n• Gunakan `/extract [nomor_wa]` untuk ekstraksi\n• Gunakan `/autojoin [nomor_wa]` untuk auto join', { parse_mode: 'Markdown' });
+        await bot.sendMessage(chatId, 'âŒ Tidak ada proses yang sedang berjalan.\n\nâ€¢ Gunakan `/extract [nomor_wa]` untuk ekstraksi\nâ€¢ Gunakan `/autojoin [nomor_wa]` untuk auto join', { parse_mode: 'Markdown' });
     }
 });
 
@@ -1483,7 +1502,7 @@ bot.onText(/\/logs/, async (msg) => {
     const userInfo = getUserInfo(msg);
     
     if (!isAdmin(userInfo.id)) {
-        await bot.sendMessage(chatId, '❌ Hanya admin yang dapat melihat logs.');
+        await bot.sendMessage(chatId, 'âŒ Hanya admin yang dapat melihat logs.');
         return;
     }
     
@@ -1493,16 +1512,16 @@ bot.onText(/\/logs/, async (msg) => {
             const stats = await fs.promises.stat(logPath);
             if (stats.size < 10 * 1024 * 1024) { // Max 10MB
                 await bot.sendDocument(chatId, logPath, {
-                    caption: '📋 Log aktivitas bot\n🕐 ' + new Date().toLocaleString('id-ID')
+                    caption: 'ðŸ“‹ Log aktivitas bot\nðŸ• ' + new Date().toLocaleString('id-ID')
                 });
             } else {
-                await bot.sendMessage(chatId, '❌ File log terlalu besar untuk dikirim (>10MB).');
+                await bot.sendMessage(chatId, 'âŒ File log terlalu besar untuk dikirim (>10MB).');
             }
         } else {
-            await bot.sendMessage(chatId, '❌ File log tidak ditemukan.');
+            await bot.sendMessage(chatId, 'âŒ File log tidak ditemukan.');
         }
     } catch (error) {
-        await bot.sendMessage(chatId, '❌ Error mengakses file log.');
+        await bot.sendMessage(chatId, 'âŒ Error mengakses file log.');
         console.error('Error sending logs:', error);
     }
 });
@@ -1518,14 +1537,15 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
 🚀 *Memulai Ekstraksi Grup WhatsApp*
 
 📱 Nomor: ${phoneNumber}
-⏱️ Estimasi waktu: 2-5 menit
+⏱️ Proses tidak terbatas waktu (untuk ekstraksi grup dalam jumlah besar)
 
-📞 Sedang mempersiapkan WhatsApp Web...
+🔄 Sedang mempersiapkan WhatsApp Web...
 
 💡 *Pastikan:*
 • WhatsApp aktif di ponsel dengan nomor ${phoneNumber}
 • Koneksi internet stabil
 • Jangan tutup WhatsApp selama proses
+• Proses akan berjalan hingga selesai tanpa timeout
     `, { parse_mode: 'Markdown' });
     
     try {
@@ -1542,13 +1562,18 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
         let outputBuffer = '';
         let errorBuffer = '';
         let pairingCodeSent = false;
+        let extractionStarted = false;
+        let lastProgressUpdate = Date.now();
         
         // Handle stdout
         extractorProcess.stdout.on('data', async (data) => {
             const output = data.toString();
             outputBuffer += output;
             
-            console.log(`[${userInfo.id}-${phoneNumber}] STDOUT:`, output);
+            console.log(`[EXTRACT-${userInfo.id}-${phoneNumber}] STDOUT:`, output);
+            
+            // Update last activity time
+            lastProgressUpdate = Date.now();
             
             // Check for pairing code
             if (output.includes('KODE PAIRING ANDA:') && !pairingCodeSent) {
@@ -1560,11 +1585,11 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
                     processInfo.stage = 'Menunggu pairing code...';
                     
                     await bot.sendMessage(chatId, `
-🔑 *Kode Pairing WhatsApp*
+🔗 *Kode Pairing WhatsApp*
 
-📱 **${pairingCode}**
+🔑 **${pairingCode}**
 
-📱 *Langkah-langkah pairing:*
+📋 *Langkah-langkah pairing:*
 1. Buka WhatsApp di ponsel dengan nomor **${phoneNumber}**
 2. Tap Menu (⋮) → Perangkat Tertaut
 3. Tap "Tautkan Perangkat"
@@ -1579,22 +1604,47 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
             }
             
             // Check for successful connection
-            if (output.includes('Login berhasil')) {
+            if (output.includes('Login berhasil') && !extractionStarted) {
+                extractionStarted = true;
                 processInfo.stage = 'Mengekstrak grup...';
                 await bot.sendMessage(chatId, `
 ✅ *WhatsApp Berhasil Terhubung!*
 
 📱 Nomor ${phoneNumber} telah terhubung
-📞 Sedang mengekstrak semua grup WhatsApp...
+🔄 Sedang mengekstrak semua grup WhatsApp...
 
-⏳ Proses ini dapat memakan waktu beberapa menit tergantung jumlah grup.
+⏳ Proses ini dapat memakan waktu lama untuk grup dalam jumlah besar.
+📊 Bot akan memberikan update progress secara berkala.
+
+🚫 **Tidak ada timeout** - proses akan berjalan hingga selesai.
                 `, { parse_mode: 'Markdown' });
+            }
+            
+            // Check for progress updates
+            if (output.includes('Progress:') || output.includes('Grup ke-') || output.includes('Total grup:')) {
+                // Send progress update every 2 minutes
+                if (Date.now() - lastProgressUpdate > 120000) { // 2 minutes
+                    processInfo.stage = 'Mengekstrak grup (dalam progress)...';
+                    const duration = Math.floor((Date.now() - processInfo.startTime) / 1000 / 60);
+                    
+                    await bot.sendMessage(chatId, `
+📊 *Update Progress Ekstraksi*
+
+📱 Nomor: ${phoneNumber}
+⏱️ Durasi: ${duration} menit
+🔄 Status: Sedang mengekstrak grup...
+
+💪 Proses masih berjalan, mohon bersabar untuk grup dalam jumlah besar.
+                    `, { parse_mode: 'Markdown' });
+                    
+                    lastProgressUpdate = Date.now();
+                }
             }
             
             // Check for completion
             if (output.includes('Ekstraksi selesai')) {
                 processInfo.stage = 'Menyelesaikan...';
-                await bot.sendMessage(chatId, '🏯 Ekstraksi selesai! Sedang mempersiapkan hasil...');
+                await bot.sendMessage(chatId, '🏁 Ekstraksi selesai! Sedang mempersiapkan hasil...');
             }
         });
         
@@ -1602,121 +1652,129 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
         extractorProcess.stderr.on('data', (data) => {
             const error = data.toString();
             errorBuffer += error;
-            console.error(`[${userInfo.id}-${phoneNumber}] STDERR:`, error);
+            console.error(`[EXTRACT-${userInfo.id}-${phoneNumber}] STDERR:`, error);
+            
+            // Update last activity time even for errors
+            lastProgressUpdate = Date.now();
         });
         
         // Handle process completion
-       // Handle process completion
         extractorProcess.on('close', async (code) => {
-            console.log(`[${userInfo.id}-${phoneNumber}] Process exited with code:`, code);
+            console.log(`[EXTRACT-${userInfo.id}-${phoneNumber}] Process exited with code:`, code);
             
-            // Clean up active process tracking
+            // Clean up process tracking
             activeProcesses.delete(userInfo.id);
             
             if (code === 0) {
                 // Process completed successfully
                 await handleSuccessfulExtraction(chatId, userInfo, phoneNumber);
+                
+                // Clean up session setelah berhasil
+                setTimeout(() => {
+                    cleanupExtractionSession(phoneNumber);
+                }, 5000); // 5 detik delay untuk memastikan file terkirim
+                
+                await logActivity('EXTRACTION_SUCCESS_WITH_CLEANUP', userInfo, `Phone: ${phoneNumber}`);
             } else {
-                // Process failed - clean up session immediately
-                console.log(`Cleaning up failed extraction session for user ${userInfo.id}, phone ${phoneNumber}`);
-                cleanupExtractionSession(userInfo.id, phoneNumber);
+                // Process failed - cleanup immediately
+                cleanupExtractionSession(phoneNumber);
                 
                 await bot.sendMessage(chatId, `
-❌ *Proses Gagal*
+❌ *Proses Ekstraksi Gagal*
 
 📱 Nomor: ${phoneNumber}
 💥 Terjadi kesalahan saat mengekstrak grup WhatsApp.
 
 **Kemungkinan penyebab:**
-- Kode pairing salah atau expired
-- Nomor WhatsApp tidak sesuai atau tidak aktif
-- Koneksi internet bermasalah
-- WhatsApp Web timeout
+• Kode pairing salah atau expired
+• Nomor WhatsApp tidak sesuai atau tidak aktif
+• Koneksi internet bermasalah
+• WhatsApp Web timeout atau error internal
 
-🔒 **Session telah dibersihkan.**
+**File session telah dibersihkan otomatis.**
 
 💡 **Solusi:**
-- Pastikan menggunakan nomor WhatsApp yang benar
-- Coba lagi dengan \`/extract ${phoneNumber}\`
-- Pastikan WhatsApp aktif di ponsel
+• Pastikan menggunakan nomor WhatsApp yang benar
+• Coba lagi dengan \`/extract ${phoneNumber}\`
+• Pastikan WhatsApp aktif dan stabil di ponsel
                 `, { parse_mode: 'Markdown' });
                 
-                await logActivity('EXTRACTION_FAILED', userInfo, `Phone: ${phoneNumber}, Code: ${code}`);
+                await logActivity('EXTRACTION_FAILED_WITH_CLEANUP', userInfo, `Phone: ${phoneNumber}, Code: ${code}`);
             }
         });
         
         // Handle process error
-        // Handle process error
         extractorProcess.on('error', async (error) => {
-            console.error(`[${userInfo.id}-${phoneNumber}] Process error:`, error);
+            console.error(`[EXTRACT-${userInfo.id}-${phoneNumber}] Process error:`, error);
             
-            // Clean up active process tracking and session
             activeProcesses.delete(userInfo.id);
-            cleanupExtractionSession(userInfo.id, phoneNumber);
+            
+            // Clean up session on error
+            cleanupExtractionSession(phoneNumber);
             
             await bot.sendMessage(chatId, `
 ❌ *Kesalahan Sistem*
 
 Terjadi kesalahan saat memulai proses ekstraksi.
-
-🔒 Session telah dibersihkan.
+File session telah dibersihkan otomatis.
 
 💡 Silakan coba lagi dengan \`/extract ${phoneNumber}\`
             `, { parse_mode: 'Markdown' });
             
-            await logActivity('EXTRACTION_ERROR', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
+            await logActivity('EXTRACTION_ERROR_WITH_CLEANUP', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
         });
         
-        // Set timeout for process (10 minutes)
-     // Set timeout for process (10 minutes)
-        setTimeout(async () => {
+        // HAPUS TIMEOUT - Tidak ada lagi timeout 10 menit
+        // Proses akan berjalan hingga selesai atau dibatalkan manual
+        
+        // Opsional: Monitor untuk inactivity yang sangat lama (misalnya 2 jam tanpa output)
+        const inactivityMonitor = setInterval(async () => {
             if (activeProcesses.has(userInfo.id)) {
-                const processInfo = activeProcesses.get(userInfo.id);
-                try {
-                    processInfo.process.kill('SIGTERM');
-                    activeProcesses.delete(userInfo.id);
-                    
-                    // Clean up session after timeout
-                    cleanupExtractionSession(userInfo.id, phoneNumber);
+                const timeSinceLastUpdate = Date.now() - lastProgressUpdate;
+                
+                // Jika tidak ada output selama 2 jam, beri peringatan tapi jangan kill
+                if (timeSinceLastUpdate > 2 * 60 * 60 * 1000) { // 2 hours
+                    const duration = Math.floor((Date.now() - processInfo.startTime) / 1000 / 60);
                     
                     await bot.sendMessage(chatId, `
-⏰ *Proses Timeout*
+⚠️ *Peringatan Inactivity*
 
 📱 Nomor: ${phoneNumber}
-⏱️ Waktu: 10 menit (maximum)
+⏱️ Durasi: ${duration} menit
+⏰ Tidak ada output selama 2 jam
 
-Proses dihentikan karena melebihi batas waktu maksimum.
+🔄 Proses masih berjalan di background.
+🚫 Gunakan /cancel jika ingin menghentikan manual.
 
-🔒 **Session telah dibersihkan.**
-
-💡 **Kemungkinan penyebab:**
-- Pairing code tidak dimasukkan
-- Koneksi internet lambat
-- WhatsApp tidak merespons
-
-Silakan coba lagi dengan \`/extract ${phoneNumber}\`
+💡 Untuk grup sangat banyak, proses bisa memakan waktu sangat lama.
                     `, { parse_mode: 'Markdown' });
                     
-                    await logActivity('EXTRACTION_TIMEOUT', userInfo, `Phone: ${phoneNumber}`);
-                } catch (error) {
-                    console.error('Error killing timed out process:', error);
+                    // Reset timer
+                    lastProgressUpdate = Date.now();
                 }
+            } else {
+                // Process sudah selesai, hentikan monitor
+                clearInterval(inactivityMonitor);
             }
-        }, 10 * 60 * 1000); // 10 minutes
+        }, 30 * 60 * 1000); // Check every 30 minutes
         
     } catch (error) {
         console.error('Error starting extraction process:', error);
         activeProcesses.delete(userInfo.id);
         
+        // Clean up on startup error
+        cleanupExtractionSession(phoneNumber);
+        
         await bot.sendMessage(chatId, `
 ❌ *Gagal Memulai Proses*
 
 Terjadi kesalahan saat memulai ekstraksi untuk nomor ${phoneNumber}.
+File session telah dibersihkan otomatis.
 
 💡 Silakan coba lagi dengan \`/extract ${phoneNumber}\`
         `, { parse_mode: 'Markdown' });
         
-        await logActivity('EXTRACTION_START_ERROR', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
+        await logActivity('EXTRACTION_START_ERROR_WITH_CLEANUP', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
     }
 }
 
@@ -1746,6 +1804,9 @@ async function handleSuccessfulExtraction(chatId, userInfo, phoneNumber) {
         const fileContent = await fs.promises.readFile(filePath, 'utf8');
         const resultData = JSON.parse(fileContent);
         
+        // Calculate extraction duration
+        const duration = Math.floor((Date.now() - Date.now()) / 1000 / 60); // Placeholder - should be calculated from process start
+        
         // Send summary message
         const totalGroups = resultData.groups ? resultData.groups.length : 0;
         const successfulLinks = resultData.groups ? resultData.groups.filter(g => g.link && g.link.startsWith('https://')).length : 0;
@@ -1758,53 +1819,57 @@ async function handleSuccessfulExtraction(chatId, userInfo, phoneNumber) {
 👤 **Akun:** ${resultData.metadata?.user_name || 'N/A'}
 
 📊 **Ringkasan Hasil:**
-👥 Total grup: **${totalGroups}**
-📊 Link berhasil: **${successfulLinks}**
+🔢 Total grup: **${totalGroups}**
+✅ Link berhasil: **${successfulLinks}**
 ❌ Link gagal: **${failedLinks}**
 
-💾 Mengirim file hasil ekstraksi...
+📁 Mengirim file hasil ekstraksi...
+🗂️ Session files akan dibersihkan otomatis setelah pengiriman
 
 ⏱️ **Waktu ekstraksi:** ${new Date().toLocaleString('id-ID')}
         `, { parse_mode: 'Markdown' });
         
         // Send the result file
         await bot.sendDocument(chatId, filePath, {
-            caption: `📋 **Hasil Ekstraksi Grup WhatsApp**\n\n📱 Nomor: ${phoneNumber}\n👥 Total grup: ${totalGroups}\n📊 Link berhasil: ${successfulLinks}\n🕘 ${new Date().toLocaleString('id-ID')}`
+            caption: `📋 **Hasil Ekstraksi Grup WhatsApp**\n\n📱 Nomor: ${phoneNumber}\n🔢 Total grup: ${totalGroups}\n✅ Link berhasil: ${successfulLinks}\n🕐 ${new Date().toLocaleString('id-ID')}`
         });
         
-        // Send detailed info if there are failed links
+        // Send additional info for failed links
         if (failedLinks > 0) {
             await bot.sendMessage(chatId, `
 ℹ️ **Informasi Link yang Gagal:**
 
 ${failedLinks} grup tidak dapat diambil linknya, kemungkinan karena:
-- Anda bukan admin di grup tersebut
-- Grup tidak mengizinkan invite link
-- Grup sudah tidak aktif
+• Anda bukan admin di grup tersebut
+• Grup tidak mengizinkan invite link
+• Grup sudah tidak aktif atau dihapus
 
 💡 Hanya admin grup yang dapat mengambil invite link.
             `, { parse_mode: 'Markdown' });
         }
         
-        // IMPORTANT: Clean up session AFTER sending results
-        console.log(`Cleaning up extraction session for user ${userInfo.id}, phone ${phoneNumber}`);
-        cleanupExtractionSession(userInfo.id, phoneNumber);
-        
+        // Final cleanup confirmation
         await bot.sendMessage(chatId, `
-🔒 **Session Ditutup**
+🧹 **Session Cleanup**
 
-📱 Session ekstraksi untuk nomor ${phoneNumber} telah ditutup dan dibersihkan.
+📱 Nomor: ${phoneNumber}
+✅ File hasil telah dikirim
+🗂️ Session files sedang dibersihkan...
+
+🔒 **Keamanan:** Semua file session dan auth akan dihapus otomatis untuk keamanan.
 
 💡 Gunakan \`/extract [nomor]\` untuk ekstraksi baru.
         `, { parse_mode: 'Markdown' });
         
-        await logActivity('EXTRACTION_SUCCESS', userInfo, `Phone: ${phoneNumber}, Groups: ${totalGroups}, Success: ${successfulLinks}`);
+        await logActivity('EXTRACTION_SUCCESS_DETAILED', userInfo, `Phone: ${phoneNumber}, Groups: ${totalGroups}, Success: ${successfulLinks}, Failed: ${failedLinks}`);
         
     } catch (error) {
         console.error('Error handling successful extraction:', error);
         
-        // Clean up session even if there's an error
-        cleanupExtractionSession(userInfo.id, phoneNumber);
+        // Still cleanup even if sending results failed
+        setTimeout(() => {
+            cleanupExtractionSession(phoneNumber);
+        }, 2000);
         
         await bot.sendMessage(chatId, `
 ✅ **Proses Ekstraksi Selesai**
@@ -1812,13 +1877,12 @@ ${failedLinks} grup tidak dapat diambil linknya, kemungkinan karena:
 📱 Nomor: ${phoneNumber}
 
 ⚠️ Terjadi masalah saat memproses hasil, tetapi file mungkin sudah tersimpan.
+🗂️ Session files akan dibersihkan otomatis.
 
-🔒 Session telah ditutup dan dibersihkan.
-
-💡 Silakan cek folder 'group' di server untuk file hasil ekstraksi atau coba lagi dengan \`/extract ${phoneNumber}\`
+💡 Silakan cek folder 'group' di server untuk file hasil ekstraksi.
         `, { parse_mode: 'Markdown' });
         
-        await logActivity('EXTRACTION_RESULT_ERROR', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
+        await logActivity('EXTRACTION_RESULT_ERROR_WITH_CLEANUP', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
     }
 }
 
@@ -1839,11 +1903,15 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('SIGINT', () => {
     console.log('\n🛑 Shutting down bot...');
     
-    // Kill all active processes
+    // Kill all active extraction processes with cleanup
     for (const [userId, processInfo] of activeProcesses) {
         try {
             processInfo.process.kill('SIGTERM');
             console.log(`Killed extraction process for user ${userId} (phone: ${processInfo.phoneNumber})`);
+            
+            // Cleanup session on shutdown
+            cleanupExtractionSession(processInfo.phoneNumber);
+            console.log(`Cleaned up extraction session for phone: ${processInfo.phoneNumber}`);
         } catch (error) {
             console.error(`Error killing extraction process for user ${userId}:`, error);
         }
@@ -1857,25 +1925,29 @@ process.on('SIGINT', () => {
                 console.log(`Killed autojoin session for user ${userId} (phone: ${sessionInfo.phoneNumber})`);
             }
             cleanupAutoJoinSession(userId, sessionInfo.phoneNumber);
+            console.log(`Cleaned up autojoin session for user ${userId}, phone: ${sessionInfo.phoneNumber}`);
         } catch (error) {
             console.error(`Error killing autojoin session for user ${userId}:`, error);
         }
     }
     
+    console.log('🧹 All sessions cleaned up');
+    console.log('🔒 Bot shutdown complete');
+    
     bot.stopPolling();
     process.exit(0);
 });
 
-console.log('🤖 Telegram Bot v2.4.1 started successfully!');
-console.log('👑 Owner ID:', OWNER_ID);
+console.log('🦾 Telegram Bot v2.4.1 started successfully!');
+console.log('👤 Owner ID:', OWNER_ID);
 
 // Load and display current admins
 const currentAdmins = loadAdmins();
 const regularAdmins = currentAdmins.filter(id => id !== OWNER_ID);
 console.log(`👥 Current admins: ${regularAdmins.length > 0 ? regularAdmins.join(', ') : 'None (only owner)'}`);
-console.log(`📊 Total authorized users: ${currentAdmins.length} (including owner)`);
+console.log(`🔒 Total authorized users: ${currentAdmins.length} (including owner)`);
 
-console.log('📱 Bot is ready to receive commands...');
+console.log('🤖 Bot is ready to receive commands...');
 console.log('');
 console.log('🆕 New in v2.4.1:');
 console.log('   • Fixed autojoin report generation and session cleanup');
