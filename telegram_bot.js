@@ -180,6 +180,55 @@ function cleanupAutoJoinSession(userId, phoneNumber) {
     }
 }
 
+// Clean up extraction session files and auth directory
+function cleanupExtractionSession(userId, phoneNumber) {
+    const filesToClean = [
+        // Add any specific extraction files that need cleanup
+    ];
+    
+    // Clean up files if any
+    filesToClean.forEach(file => {
+        if (fs.existsSync(file)) {
+            try {
+                fs.unlinkSync(file);
+                console.log(`Cleaned up extraction file: ${file}`);
+            } catch (e) {
+                console.error(`Error deleting ${file}:`, e);
+            }
+        }
+    });
+    
+    // Clean up auth directory for extraction
+    const authDir = `extraction_auth_${phoneNumber}`;
+    if (fs.existsSync(authDir)) {
+        try {
+            fs.rmSync(authDir, { recursive: true, force: true });
+            console.log(`Cleaned up extraction auth directory: ${authDir}`);
+        } catch (e) {
+            console.error('Error cleaning extraction auth directory:', e);
+        }
+    }
+    
+    // Also clean up any WhatsApp Web auth folders that might be created
+    const possibleAuthDirs = [
+        '.wwebjs_auth',
+        `auth_${phoneNumber}`,
+        `session_${phoneNumber}`,
+        `whatsapp_session_${phoneNumber}`
+    ];
+    
+    possibleAuthDirs.forEach(dir => {
+        if (fs.existsSync(dir)) {
+            try {
+                fs.rmSync(dir, { recursive: true, force: true });
+                console.log(`Cleaned up auth directory: ${dir}`);
+            } catch (e) {
+                console.error(`Error cleaning auth directory ${dir}:`, e);
+            }
+        }
+    });
+}
+
 // Initialize admin file on startup
 initializeAdminFile();
 
@@ -1374,6 +1423,9 @@ bot.onText(/\/cancel/, async (msg) => {
         try {
             processInfo.process.kill('SIGTERM');
             activeProcesses.delete(userInfo.id);
+            
+            // Clean up session files
+            cleanupExtractionSession(userInfo.id, processInfo.phoneNumber);
             cancelled = true;
             
             await bot.sendMessage(chatId, `
@@ -1381,6 +1433,8 @@ bot.onText(/\/cancel/, async (msg) => {
 
 📱 Nomor: ${processInfo.phoneNumber}
 ⏱️ Durasi sebelum dibatalkan: ${Math.floor((Date.now() - processInfo.startTime) / 1000)} detik
+
+🔒 Session telah dibersihkan.
             `, { parse_mode: 'Markdown' });
             
             await logActivity('EXTRACTION_CANCELLED', userInfo, `Phone: ${processInfo.phoneNumber}`);
@@ -1552,17 +1606,21 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
         });
         
         // Handle process completion
+       // Handle process completion
         extractorProcess.on('close', async (code) => {
             console.log(`[${userInfo.id}-${phoneNumber}] Process exited with code:`, code);
             
-            // Clean up
+            // Clean up active process tracking
             activeProcesses.delete(userInfo.id);
             
             if (code === 0) {
                 // Process completed successfully
                 await handleSuccessfulExtraction(chatId, userInfo, phoneNumber);
             } else {
-                // Process failed
+                // Process failed - clean up session immediately
+                console.log(`Cleaning up failed extraction session for user ${userInfo.id}, phone ${phoneNumber}`);
+                cleanupExtractionSession(userInfo.id, phoneNumber);
+                
                 await bot.sendMessage(chatId, `
 ❌ *Proses Gagal*
 
@@ -1570,15 +1628,17 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
 💥 Terjadi kesalahan saat mengekstrak grup WhatsApp.
 
 **Kemungkinan penyebab:**
-• Kode pairing salah atau expired
-• Nomor WhatsApp tidak sesuai atau tidak aktif
-• Koneksi internet bermasalah
-• WhatsApp Web timeout
+- Kode pairing salah atau expired
+- Nomor WhatsApp tidak sesuai atau tidak aktif
+- Koneksi internet bermasalah
+- WhatsApp Web timeout
+
+🔒 **Session telah dibersihkan.**
 
 💡 **Solusi:**
-• Pastikan menggunakan nomor WhatsApp yang benar
-• Coba lagi dengan \`/extract ${phoneNumber}\`
-• Pastikan WhatsApp aktif di ponsel
+- Pastikan menggunakan nomor WhatsApp yang benar
+- Coba lagi dengan \`/extract ${phoneNumber}\`
+- Pastikan WhatsApp aktif di ponsel
                 `, { parse_mode: 'Markdown' });
                 
                 await logActivity('EXTRACTION_FAILED', userInfo, `Phone: ${phoneNumber}, Code: ${code}`);
@@ -1586,15 +1646,20 @@ async function startExtractionProcess(chatId, userInfo, phoneNumber) {
         });
         
         // Handle process error
+        // Handle process error
         extractorProcess.on('error', async (error) => {
             console.error(`[${userInfo.id}-${phoneNumber}] Process error:`, error);
             
+            // Clean up active process tracking and session
             activeProcesses.delete(userInfo.id);
+            cleanupExtractionSession(userInfo.id, phoneNumber);
             
             await bot.sendMessage(chatId, `
 ❌ *Kesalahan Sistem*
 
 Terjadi kesalahan saat memulai proses ekstraksi.
+
+🔒 Session telah dibersihkan.
 
 💡 Silakan coba lagi dengan \`/extract ${phoneNumber}\`
             `, { parse_mode: 'Markdown' });
@@ -1603,12 +1668,16 @@ Terjadi kesalahan saat memulai proses ekstraksi.
         });
         
         // Set timeout for process (10 minutes)
+     // Set timeout for process (10 minutes)
         setTimeout(async () => {
             if (activeProcesses.has(userInfo.id)) {
                 const processInfo = activeProcesses.get(userInfo.id);
                 try {
                     processInfo.process.kill('SIGTERM');
                     activeProcesses.delete(userInfo.id);
+                    
+                    // Clean up session after timeout
+                    cleanupExtractionSession(userInfo.id, phoneNumber);
                     
                     await bot.sendMessage(chatId, `
 ⏰ *Proses Timeout*
@@ -1618,10 +1687,12 @@ Terjadi kesalahan saat memulai proses ekstraksi.
 
 Proses dihentikan karena melebihi batas waktu maksimum.
 
+🔒 **Session telah dibersihkan.**
+
 💡 **Kemungkinan penyebab:**
-• Pairing code tidak dimasukkan
-• Koneksi internet lambat
-• WhatsApp tidak merespons
+- Pairing code tidak dimasukkan
+- Koneksi internet lambat
+- WhatsApp tidak merespons
 
 Silakan coba lagi dengan \`/extract ${phoneNumber}\`
                     `, { parse_mode: 'Markdown' });
@@ -1698,7 +1769,7 @@ async function handleSuccessfulExtraction(chatId, userInfo, phoneNumber) {
         
         // Send the result file
         await bot.sendDocument(chatId, filePath, {
-            caption: `📋 **Hasil Ekstraksi Grup WhatsApp**\n\n📱 Nomor: ${phoneNumber}\n👥 Total grup: ${totalGroups}\n📊 Link berhasil: ${successfulLinks}\n🕐 ${new Date().toLocaleString('id-ID')}`
+            caption: `📋 **Hasil Ekstraksi Grup WhatsApp**\n\n📱 Nomor: ${phoneNumber}\n👥 Total grup: ${totalGroups}\n📊 Link berhasil: ${successfulLinks}\n🕘 ${new Date().toLocaleString('id-ID')}`
         });
         
         // Send detailed info if there are failed links
@@ -1707,18 +1778,33 @@ async function handleSuccessfulExtraction(chatId, userInfo, phoneNumber) {
 ℹ️ **Informasi Link yang Gagal:**
 
 ${failedLinks} grup tidak dapat diambil linknya, kemungkinan karena:
-• Anda bukan admin di grup tersebut
-• Grup tidak mengizinkan invite link
-• Grup sudah tidak aktif
+- Anda bukan admin di grup tersebut
+- Grup tidak mengizinkan invite link
+- Grup sudah tidak aktif
 
 💡 Hanya admin grup yang dapat mengambil invite link.
             `, { parse_mode: 'Markdown' });
         }
         
+        // IMPORTANT: Clean up session AFTER sending results
+        console.log(`Cleaning up extraction session for user ${userInfo.id}, phone ${phoneNumber}`);
+        cleanupExtractionSession(userInfo.id, phoneNumber);
+        
+        await bot.sendMessage(chatId, `
+🔒 **Session Ditutup**
+
+📱 Session ekstraksi untuk nomor ${phoneNumber} telah ditutup dan dibersihkan.
+
+💡 Gunakan \`/extract [nomor]\` untuk ekstraksi baru.
+        `, { parse_mode: 'Markdown' });
+        
         await logActivity('EXTRACTION_SUCCESS', userInfo, `Phone: ${phoneNumber}, Groups: ${totalGroups}, Success: ${successfulLinks}`);
         
     } catch (error) {
         console.error('Error handling successful extraction:', error);
+        
+        // Clean up session even if there's an error
+        cleanupExtractionSession(userInfo.id, phoneNumber);
         
         await bot.sendMessage(chatId, `
 ✅ **Proses Ekstraksi Selesai**
@@ -1727,7 +1813,9 @@ ${failedLinks} grup tidak dapat diambil linknya, kemungkinan karena:
 
 ⚠️ Terjadi masalah saat memproses hasil, tetapi file mungkin sudah tersimpan.
 
-💡 Silakan cek folder 'group' di server untuk file hasil ekstraksi.
+🔒 Session telah ditutup dan dibersihkan.
+
+💡 Silakan cek folder 'group' di server untuk file hasil ekstraksi atau coba lagi dengan \`/extract ${phoneNumber}\`
         `, { parse_mode: 'Markdown' });
         
         await logActivity('EXTRACTION_RESULT_ERROR', userInfo, `Phone: ${phoneNumber}, Error: ${error.message}`);
